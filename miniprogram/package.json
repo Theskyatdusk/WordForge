@@ -1,0 +1,38 @@
+{
+  "name": "wordforge-miniprogram",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WordForge 微信小程序",
+  "templateInfo": {
+    "name": "default",
+    "typescript": true,
+    "css": "sass",
+    "framework": "react"
+  },
+  "scripts": {
+    "build:weapp": "taro build --type weapp",
+    "dev:weapp": "npm run build:weapp -- --watch"
+  },
+  "dependencies": {
+    "@tarojs/components": "3.6.23",
+    "@tarojs/helper": "3.6.23",
+    "@tarojs/plugin-framework-react": "3.6.23",
+    "@tarojs/react": "3.6.23",
+    "@tarojs/runtime": "3.6.23",
+    "@tarojs/shared": "3.6.23",
+    "@tarojs/taro": "3.6.23",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zustand": "4.5.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@tarojs/cli": "3.6.23",
+    "@tarojs/webpack5-runner": "3.6.23",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "babel-preset-taro": "3.6.23",
+    "typescript": "5.4.5",
+    "webpack": "5.88.2"
+  }
+}

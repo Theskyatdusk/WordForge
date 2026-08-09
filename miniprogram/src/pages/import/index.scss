@@ -1,0 +1,293 @@
+@import '../../theme.scss';
+
+.im {
+  &__back {
+    display: flex;
+    align-items: center;
+    gap: 6rpx;
+    margin-bottom: 20rpx;
+  }
+
+  &__back-text {
+    font-size: 26rpx;
+    color: var(--text-tertiary);
+  }
+
+  &__head {
+    margin-bottom: 24rpx;
+  }
+
+  &__btn-text {
+    margin-left: 8rpx;
+  }
+
+  /* ---------- 选择文件 ---------- */
+  &__drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 56rpx 32rpx;
+    border-radius: 32rpx;
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    margin-bottom: 24rpx;
+    transition: background 0.18s var(--ease-out);
+  }
+
+  &__drop--pressed {
+    background: rgba(20, 184, 166, 0.08);
+    border-color: var(--teal-500);
+  }
+
+  &__drop-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 112rpx;
+    height: 112rpx;
+    border-radius: 32rpx;
+    margin-bottom: 20rpx;
+    background: rgba(20, 184, 166, 0.12);
+  }
+
+  &__drop-title {
+    font-size: 27rpx;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6rpx;
+  }
+
+  &__drop-desc {
+    font-size: 22rpx;
+    color: var(--text-tertiary);
+  }
+
+  /* ---------- 分割线 ---------- */
+  &__divider {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    margin-bottom: 24rpx;
+  }
+
+  &__divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  &__divider-text {
+    font-size: 22rpx;
+    color: var(--text-tertiary);
+  }
+
+  /* ---------- 编辑区 ---------- */
+  &__editor {
+    position: relative;
+    margin-bottom: 24rpx;
+  }
+
+  &__textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 320rpx;
+    padding: 28rpx;
+    border-radius: 24rpx;
+    font-size: 24rpx;
+    line-height: 1.6;
+    font-family: var(--font-mono, monospace);
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  &__textarea-ph {
+    color: var(--text-tertiary);
+    font-size: 24rpx;
+  }
+
+  &__clear {
+    position: absolute;
+    top: 20rpx;
+    right: 20rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 54rpx;
+    height: 54rpx;
+    border-radius: 14rpx;
+    background: var(--surface-3);
+  }
+
+  /* ---------- 操作 ---------- */
+  &__actions {
+    display: flex;
+    gap: 16rpx;
+    margin-bottom: 24rpx;
+  }
+
+  &__cta {
+    margin-bottom: 24rpx;
+  }
+
+  /* ---------- 结果 ---------- */
+  &__result {
+    margin-bottom: 24rpx;
+  }
+
+  &__result-head {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    margin-bottom: 20rpx;
+  }
+
+  &__result-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60rpx;
+    height: 60rpx;
+    border-radius: 999rpx;
+    flex-shrink: 0;
+  }
+
+  &__result-title {
+    font-size: 27rpx;
+    font-weight: 700;
+  }
+
+  &__stats {
+    display: flex;
+    gap: 12rpx;
+  }
+
+  &__stat {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+  }
+
+  &__stat-num {
+    display: block;
+    font-size: 34rpx;
+    font-weight: 700;
+    color: var(--teal-600);
+  }
+
+  &__stat-label {
+    display: block;
+    font-size: 20rpx;
+    color: var(--text-tertiary);
+  }
+
+  &__err {
+    display: flex;
+    align-items: flex-start;
+    gap: 12rpx;
+  }
+
+  &__err-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__err-msg {
+    display: block;
+    font-size: 22rpx;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-top: 4rpx;
+    word-break: break-all;
+  }
+
+  /* ---------- 格式说明 ---------- */
+  &__guide {
+    margin-bottom: 24rpx;
+  }
+
+  &__guide-head {
+    display: flex;
+    align-items: center;
+    gap: 10rpx;
+    margin-bottom: 20rpx;
+  }
+
+  &__guide-title {
+    font-size: 27rpx;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  &__guide-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10rpx;
+  }
+
+  &__guide-line {
+    font-size: 22rpx;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  &__code {
+    color: var(--teal-600);
+    font-weight: 600;
+  }
+
+  &__snippet {
+    margin-top: 20rpx;
+    padding: 22rpx;
+    border-radius: 16rpx;
+    background: var(--surface-2);
+  }
+
+  &__snippet-text {
+    font-size: 20rpx;
+    line-height: 1.7;
+    font-family: var(--font-mono, monospace);
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* ---------- 提示 ---------- */
+  &__tips {
+    display: flex;
+    align-items: flex-start;
+    gap: 18rpx;
+  }
+
+  &__tips-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 68rpx;
+    height: 68rpx;
+    border-radius: 18rpx;
+    flex-shrink: 0;
+    background: rgba(139, 92, 246, 0.12);
+  }
+
+  &__tips-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__tips-title {
+    display: block;
+    font-size: 27rpx;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8rpx;
+  }
+
+  &__tips-line {
+    display: block;
+    font-size: 22rpx;
+    color: var(--text-tertiary);
+    line-height: 1.8;
+  }
+}

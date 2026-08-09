@@ -1,0 +1,81 @@
+.dash {
+  min-height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--bg);
+}
+
+.dash-hero {
+  background: linear-gradient(135deg, var(--primary-700), var(--primary-600) 60%, #0891b2);
+  border-radius: 24px;
+  padding: 36px 28px;
+}
+
+.dash-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dash-greeting {
+  color: #ffffff;
+  font-size: 38px;
+  font-weight: 600;
+}
+
+.dash-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 32px;
+}
+
+.dash-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dash-stat .num {
+  color: #ffffff;
+  font-size: 44px;
+  font-weight: 700;
+}
+
+.dash-stat .label {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 22px;
+  margin-top: 8px;
+}
+
+.dash-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 28px;
+  background: var(--card);
+  border-radius: 24px;
+  padding: 12px 0;
+}
+
+.dash-cell {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+}
+
+.dash-cell-icon {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-cell-label {
+  margin-top: 12px;
+  font-size: 24px;
+  color: var(--text);
+}

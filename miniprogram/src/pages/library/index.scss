@@ -1,0 +1,36 @@
+.lib {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+
+  &__header { margin-bottom: 4rpx; }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    padding: 0 24rpx;
+    height: 84rpx;
+    border-radius: 22rpx;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-sizing: border-box;
+  }
+
+  &__search-input {
+    flex: 1;
+    min-width: 0;
+    font-size: 26rpx;
+    color: var(--text);
+  }
+
+  &__search-ph { color: var(--text-tertiary); }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 20rpx;
+  }
+
+  &__skeleton { height: 160rpx; }
+}

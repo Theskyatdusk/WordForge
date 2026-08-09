@@ -1,0 +1,8 @@
+@import './theme.scss';
+
+page {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', Helvetica, sans-serif;
+  font-size: 28px;
+}

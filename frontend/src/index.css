@@ -1,0 +1,435 @@
+@import "tailwindcss";
+
+/* ============================================================
+   WordForge Design System v2
+   A refined, premium design language built on teal + violet
+   with warm amber accents, layered depth, and purposeful motion.
+   ============================================================ */
+
+:root {
+  /* Brand palette */
+  --teal-50: #f0fdfa; --teal-100: #ccfbf1; --teal-200: #99f6e4;
+  --teal-300: #5eead4; --teal-400: #2dd4bf; --teal-500: #14b8a6;
+  --teal-600: #0d9488; --teal-700: #0f766e; --teal-800: #115e59; --teal-900: #134e4a;
+  --amber-400: #fbbf24; --amber-500: #f59e0b; --amber-600: #d97706;
+  --violet-400: #a78bfa; --violet-500: #8b5cf6; --violet-600: #7c3aed;
+  --rose-500: #f43f5e; --rose-600: #e11d48;
+  --emerald-500: #10b981; --emerald-600: #059669;
+  --blue-500: #3b82f6; --blue-600: #2563eb;
+  --pink-500: #ec4899;
+
+  /* Semantic surfaces */
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #f1f5f9;
+  --surface-hover: #f8fafc;
+  --surface-elevated: #ffffff;
+
+  /* Borders */
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --border-strong: #cbd5e1;
+
+  /* Text */
+  --text: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* Shadows — layered for depth */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-md: 0 4px 8px -2px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.03);
+  --shadow-lg: 0 12px 20px -4px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.03);
+  --shadow-xl: 0 24px 32px -8px rgba(0,0,0,0.10), 0 8px 16px -8px rgba(0,0,0,0.04);
+  --shadow-2xl: 0 32px 48px -12px rgba(0,0,0,0.12), 0 12px 24px -8px rgba(0,0,0,0.05);
+  --shadow-glow: 0 0 24px rgba(20,184,166,0.15);
+  --shadow-glow-violet: 0 0 24px rgba(139,92,246,0.12);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+  --font-display: 'Fraunces', 'Noto Sans SC', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+[data-theme="dark"] {
+  --surface: #161e2e;
+  --surface-2: #1e293b;
+  --surface-3: #334155;
+  --surface-hover: #1e293b;
+  --surface-elevated: #1a2335;
+
+  --border: #2d3b52;
+  --border-light: #1e293b;
+  --border-strong: #475569;
+
+  --text: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #64748b;
+  --text-inverse: #0f172a;
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 8px -2px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3);
+  --shadow-lg: 0 12px 20px -4px rgba(0,0,0,0.4), 0 4px 8px -4px rgba(0,0,0,0.3);
+  --shadow-xl: 0 24px 32px -8px rgba(0,0,0,0.5), 0 8px 16px -8px rgba(0,0,0,0.3);
+  --shadow-2xl: 0 32px 48px -12px rgba(0,0,0,0.6), 0 12px 24px -8px rgba(0,0,0,0.3);
+  --shadow-glow: 0 0 28px rgba(20,184,166,0.25);
+  --shadow-glow-violet: 0 0 28px rgba(139,92,246,0.2);
+}
+
+/* ============================================================
+   Reset & Base
+   ============================================================ */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--surface-2);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.4s var(--ease-out), color 0.3s ease;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+   Scrollbar — refined and subtle
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+  transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* ============================================================
+   Typography utilities
+   ============================================================ */
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ============================================================
+   Transitions — smooth and purposeful
+   ============================================================ */
+
+button, a, input, select, textarea {
+  transition: background-color 0.2s var(--ease-out),
+              border-color 0.2s var(--ease-out),
+              color 0.2s var(--ease-out),
+              box-shadow 0.2s var(--ease-out),
+              transform 0.15s var(--ease-out);
+}
+
+/* ============================================================
+   Animation Keyframes
+   ============================================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes aurora-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+@keyframes bounce-in {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.05); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes ring-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(20,184,166,0.3); }
+  70% { box-shadow: 0 0 0 10px rgba(20,184,166,0); }
+  100% { box-shadow: 0 0 0 0 rgba(20,184,166,0); }
+}
+
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(0) scale(0.8); }
+  50% { opacity: 1; transform: translateY(-30px) scale(1); }
+  100% { opacity: 0; transform: translateY(-60px) scale(0.9); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(20,184,166,0.2); }
+  50% { box-shadow: 0 0 24px rgba(20,184,166,0.4); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes progress-fill {
+  from { width: 0%; }
+}
+
+/* ============================================================
+   Animation Utility Classes
+   ============================================================ */
+
+.animate-fade-in { animation: fadeIn 0.4s var(--ease-out) forwards; }
+.animate-slide-up { animation: slideUp 0.4s var(--ease-out) forwards; }
+.animate-slide-down { animation: slideDown 0.4s var(--ease-out) forwards; }
+.animate-scale-in { animation: scaleIn 0.3s var(--ease-out) forwards; }
+.animate-slide-in-right { animation: slideInRight 0.4s var(--ease-out) forwards; }
+.animate-bounce-in { animation: bounce-in 0.5s var(--ease-spring) forwards; }
+.animate-count-up { animation: count-up 0.5s var(--ease-out) forwards; }
+.animate-shake { animation: shake 0.4s ease-in-out; }
+.animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+
+/* Staggered animation delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
+
+/* ============================================================
+   Skeleton Loading
+   ============================================================ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-3) 0%,
+    var(--surface-2) 50%,
+    var(--surface-3) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ============================================================
+   Selection & Focus
+   ============================================================ */
+
+::selection {
+  background: rgba(20,184,166,0.2);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   Glass effect for header/nav
+   ============================================================ */
+
+.glass {
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+/* ============================================================
+   Gradient text utility
+   ============================================================ */
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--teal-600), var(--violet-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-warm {
+  background: linear-gradient(135deg, var(--amber-500), var(--rose-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ============================================================
+   Card hover effect
+   ============================================================ */
+
+.card-hover {
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out), border-color 0.25s var(--ease-out);
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+.card-hover:active {
+  transform: translateY(-1px);
+}
+
+/* Interactive press effect */
+.press-effect {
+  transition: transform 0.1s ease;
+}
+.press-effect:active {
+  transform: scale(0.96);
+}
+
+/* ============================================================
+   Utility: animated gradient background
+   ============================================================ */
+
+.animated-gradient {
+  background: linear-gradient(
+    -45deg,
+    var(--teal-500),
+    var(--violet-500),
+    var(--teal-600),
+    var(--violet-600)
+  );
+  background-size: 400% 400%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* ============================================================
+   Utility: spinner
+   ============================================================ */
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--surface-3);
+  border-top-color: var(--teal-500);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Font Size — controlled by data-font-size attribute
+   ============================================================ */
+
+[data-font-size="small"] {
+  --word-en-size: 1.5rem;
+  --word-zh-size: 0.9rem;
+  --word-en-size-lg: 1.75rem;
+  --word-zh-size-lg: 1rem;
+}
+[data-font-size="medium"] {
+  --word-en-size: 1.875rem;
+  --word-zh-size: 1.05rem;
+  --word-en-size-lg: 2rem;
+  --word-zh-size-lg: 1.125rem;
+}
+[data-font-size="large"] {
+  --word-en-size: 2.25rem;
+  --word-zh-size: 1.2rem;
+  --word-en-size-lg: 2.5rem;
+  --word-zh-size-lg: 1.3rem;
+}
+
+/* Hide POS badges when data-show-pos is false */
+[data-show-pos="false"] .pos-badge {
+  display: none !important;
+}

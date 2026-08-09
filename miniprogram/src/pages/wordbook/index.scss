@@ -1,0 +1,242 @@
+@import '../../theme.scss';
+
+.wb {
+  &__head {
+    margin-bottom: 24rpx;
+  }
+
+  &__btn-text {
+    margin-left: 8rpx;
+  }
+
+  /* ---------- 空态 ---------- */
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: 72rpx;
+    padding-bottom: 72rpx;
+  }
+
+  &__empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 128rpx;
+    height: 128rpx;
+    border-radius: 32rpx;
+    margin-bottom: 24rpx;
+    background: rgba(245, 158, 11, 0.12);
+  }
+
+  &__empty-title {
+    font-size: 32rpx;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8rpx;
+  }
+
+  &__empty-desc {
+    font-size: 26rpx;
+    color: var(--text-tertiary);
+    margin-bottom: 28rpx;
+    line-height: 1.6;
+  }
+
+  /* ---------- 搜索 ---------- */
+  &__search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 84rpx;
+    padding: 0 20rpx;
+    margin-bottom: 16rpx;
+    border-radius: 24rpx;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  &__search-icon {
+    flex-shrink: 0;
+  }
+
+  &__search-input {
+    flex: 1;
+    min-width: 0;
+    height: 84rpx;
+    padding: 0 16rpx;
+    font-size: 28rpx;
+    color: var(--text);
+  }
+
+  &__search-ph {
+    color: var(--text-tertiary);
+    font-size: 28rpx;
+  }
+
+  &__search-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48rpx;
+    height: 48rpx;
+    flex-shrink: 0;
+  }
+
+  /* ---------- 排序 tabs ---------- */
+  &__tabs {
+    display: flex;
+    gap: 16rpx;
+    margin-bottom: 20rpx;
+  }
+
+  &__tab {
+    padding: 12rpx 24rpx;
+    border-radius: 16rpx;
+    background: var(--surface-3);
+    transition: background 0.18s var(--ease-out);
+  }
+
+  &__tab-text {
+    font-size: 24rpx;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  &__tab--on {
+    background: var(--teal-600);
+  }
+
+  &__tab--on .wb__tab-text {
+    color: #fff;
+  }
+
+  &__tab--pressed {
+    opacity: 0.75;
+  }
+
+  /* ---------- 列表 ---------- */
+  &__list {
+    max-height: 68vh;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+    margin-bottom: 16rpx;
+  }
+
+  &__stamp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 96rpx;
+    height: 96rpx;
+    border-radius: 24rpx;
+    flex-shrink: 0;
+    background: var(--surface-2);
+  }
+
+  &__stamp-text {
+    font-size: 44rpx;
+    line-height: 1;
+    color: var(--text-secondary);
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  &__en {
+    font-size: 28rpx;
+    font-weight: 700;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__pos {
+    margin-left: 12rpx;
+    font-size: 20rpx;
+    padding: 2rpx 10rpx;
+    border-radius: 8rpx;
+    flex-shrink: 0;
+    background: var(--surface-3);
+    color: var(--text-tertiary);
+  }
+
+  &__zh {
+    display: block;
+    font-size: 24rpx;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    margin-top: 8rpx;
+    gap: 12rpx;
+  }
+
+  &__status {
+    font-size: 20rpx;
+    font-weight: 500;
+    padding: 2rpx 10rpx;
+    border-radius: 8rpx;
+  }
+
+  &__time {
+    font-size: 20rpx;
+    color: var(--text-tertiary);
+  }
+
+  /* ---------- 操作按钮 ---------- */
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+    flex-shrink: 0;
+  }
+
+  &__act {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 999rpx;
+  }
+
+  &__act--speak {
+    background: rgba(20, 184, 166, 0.12);
+  }
+
+  &__act--del {
+    background: rgba(220, 38, 38, 0.1);
+  }
+
+  &__act--pressed {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+
+  /* ---------- 无结果 ---------- */
+  &__nores {
+    text-align: center;
+  }
+
+  &__nores-text {
+    font-size: 26rpx;
+    color: var(--text-tertiary);
+  }
+
+  &__cta {
+    margin-top: 24rpx;
+  }
+}

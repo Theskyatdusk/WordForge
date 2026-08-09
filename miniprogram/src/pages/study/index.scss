@@ -1,0 +1,25 @@
+/* Study 页面样式 —— 主要复用全局 token，少量页面级修饰 */
+
+.st-mode-item {
+  width: calc(50% - 12rpx);
+}
+
+.st-chapter {
+  /* 章节卡片本身无额外修饰，hover 态由 Card 提供 */
+}
+
+.st-card-center {
+  text-align: center;
+}
+
+.st-answer-row {
+  /* 答案展示行，细节由内联样式控制 */
+}
+
+.st-input {
+  flex: 1;
+  height: 88rpx;
+  padding: 0 28rpx;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+}

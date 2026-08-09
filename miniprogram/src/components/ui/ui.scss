@@ -1,0 +1,287 @@
+// UI 组件样式 —— 替代 web 端的 Tailwind 类。
+// 所有颜色一律走 theme.scss 里的 CSS 变量，暗色模式自动跟随。
+
+// ===== Card =====
+.wf-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 24rpx;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  box-sizing: border-box;
+
+  &--p-none { padding: 0; }
+  &--p-sm { padding: 20rpx; }
+  &--p-md { padding: 28rpx; }
+  &--p-lg { padding: 40rpx; }
+
+  &--hover:active {
+    transform: scale(0.99);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+// ===== Button =====
+.wf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  font-weight: 600;
+  box-sizing: border-box;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.12s var(--ease-out), opacity 0.15s;
+
+  &--sm { padding: 12rpx 28rpx; font-size: 24rpx; border-radius: 16rpx; }
+  &--md { padding: 20rpx 32rpx; font-size: 26rpx; border-radius: 22rpx; }
+  &--lg { padding: 28rpx 48rpx; font-size: 30rpx; border-radius: 24rpx; }
+
+  &--full { width: 100%; }
+
+  &--primary {
+    color: #fff;
+    background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+  }
+
+  &--secondary {
+    color: var(--text);
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+  }
+
+  &--ghost {
+    color: var(--text-secondary);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  &--danger {
+    color: #fff;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+
+  &--success {
+    color: #fff;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+  }
+
+  &--pressed { transform: scale(0.95); }
+
+  &--disabled { opacity: 0.5; }
+}
+
+// ===== ProgressRing =====
+.wf-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &__svg {
+    display: block;
+  }
+
+  &__center {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__text {
+    font-weight: 700;
+    color: var(--text);
+  }
+}
+
+// ===== Modal =====
+.wf-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.5);
+  animation: wfFadeIn 0.2s var(--ease-out) both;
+
+  &__panel {
+    width: 100%;
+    max-height: 84vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-radius: 32rpx 32rpx 0 0;
+    box-shadow: var(--shadow-lg);
+    animation: wfSlideUp 0.28s var(--ease-out) both;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 32rpx 32rpx 20rpx;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 32rpx;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  &__close {
+    width: 56rpx;
+    height: 56rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--surface-2);
+  }
+
+  &__body {
+    padding: 28rpx 32rpx;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  &__foot {
+    padding: 20rpx 32rpx 32rpx;
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+}
+
+@keyframes wfSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+// ===== Toast =====
+.wf-toasts {
+  position: fixed;
+  top: 40rpx;
+  left: 32rpx;
+  right: 32rpx;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  pointer-events: none;
+}
+
+.wf-toast {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 22rpx 28rpx;
+  border-radius: 20rpx;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+  animation: wfToastIn 0.26s var(--ease-spring) both;
+
+  &__msg {
+    flex: 1;
+    font-size: 26rpx;
+    color: var(--text);
+  }
+}
+
+@keyframes wfToastIn {
+  from { opacity: 0; transform: translateY(-24rpx) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+// ===== 字号档位（对应 settings.fontSize） =====
+.fs-small { font-size: 26rpx; }
+.fs-medium { font-size: 28rpx; }
+.fs-large { font-size: 32rpx; }
+
+.wf-page--no-tabbar { padding-bottom: 48rpx; }
+
+// ===== 空状态 / 加载 / 错误 —— 三态系统（对应 web 端 Part ③） =====
+.wf-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80rpx 40rpx;
+
+  &__icon {
+    width: 128rpx;
+    height: 128rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 32rpx;
+    margin-bottom: 28rpx;
+    font-size: 56rpx;
+  }
+
+  &__title {
+    font-size: 30rpx;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10rpx;
+  }
+
+  &__desc {
+    font-size: 25rpx;
+    color: var(--text-tertiary);
+    line-height: 1.6;
+    margin-bottom: 28rpx;
+  }
+}
+
+/* ============ Toggle ============ */
+.wf-toggle-wrap {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.wf-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  transition: background 0.2s var(--ease-out);
+
+  &--on {
+    background: var(--teal-500);
+    border-color: var(--teal-500);
+  }
+
+  &--disabled {
+    opacity: 0.5;
+  }
+
+  &__knob {
+    position: absolute;
+    border-radius: 999rpx;
+    background: #fff;
+    box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.2);
+    transition: left 0.2s var(--ease-out);
+  }
+
+  &__label {
+    margin-left: 16rpx;
+    font-size: 26rpx;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+}

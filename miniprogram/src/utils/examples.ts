@@ -1,0 +1,307 @@
+/**
+ * Examples — Three-tier example sentence engine.
+ *
+ *   L1 入门: Scene-based short sentences (word → image association)
+ *   L2 进阶: Exam-style longer sentences with frequency rating
+ *   L3 拓展: Real movie/literature quotes (verified sources) or related corpus
+ *
+ * Ported from the original app with the full curated sentence library.
+ */
+import type { ExampleSentence, Item, VocabData } from '../types/index';
+
+interface LibEntry {
+  l1: string; // "英文|中文"
+  l2: string; // "英文|中文"
+  freq: number; // 1-3
+}
+
+interface MediaEntry {
+  quote: string; // "英文|中文"
+  source: string;
+}
+
+type CustomEntry = { en: string; zh: string };
+
+// ===== L1/L2 curated sentence library =====
+const LIB: Record<string, LibEntry> = {
+  'take part in': { l1: 'We take part in a clean-up every Saturday.|我们每周六都参加一次清扫活动。', l2: 'Students who take part in voluntary service often develop a stronger sense of responsibility.|参与志愿服务的学生往往会形成更强的责任感。', freq: 3 },
+  'be split into': { l1: 'The class was split into six small groups.|全班被分成了六个小组。', l2: 'The volunteers were split into three teams and set off for different corridors.|志愿者被分成三队，分别出发前往不同的走廊。', freq: 2 },
+  'set off': { l1: 'We set off at six in the morning.|我们早上六点出发。', l2: 'As soon as the rain stopped, the team set off for the old people\u2019s home.|雨一停，队伍就出发前往敬老院。', freq: 2 },
+  'sweep away': { l1: 'He swept away the fallen leaves.|他扫掉了落叶。', l2: 'A few warm words can sweep away the gloom of an entire day.|几句温暖的话就能扫去一整天的阴霾。', freq: 2 },
+  'offer assistance to': { l1: 'I offered assistance to a lost child.|我帮助了一个走丢的孩子。', l2: 'Trained volunteers offer assistance to residents who live alone.|受过培训的志愿者为独居居民提供帮助。', freq: 2 },
+  'tidy up': { l1: 'Let\u2019s tidy up the classroom before we leave.|走之前我们把教室收拾一下。', l2: 'We spent the whole morning tidying up the community library.|我们花了一上午整理社区图书馆。', freq: 2 },
+  'appeal to': { l1: 'The poster appeals to everyone to save water.|这张海报呼吁大家节约用水。', l2: 'The campaign appealed to residents to sort their rubbish, and it appealed to the young in particular.|该活动呼吁居民进行垃圾分类，尤其吸引了年轻人。', freq: 3 },
+  'show concern for': { l1: 'We should show concern for the elderly.|我们应该关心老年人。', l2: 'A community becomes warm only when its members show concern for one another.|只有成员彼此关心，社区才会有温度。', freq: 2 },
+  'gain great benefits from': { l1: 'I gained great benefits from the trip.|这次旅行让我收获良多。', l2: 'Both sides gain great benefits from this simple act of sharing.|双方都从这一简单的分享中收获良多。', freq: 2 },
+  voluntary: { l1: 'She joined a voluntary group last year.|她去年加入了一个志愿团体。', l2: 'Voluntary work is entirely unpaid, yet it rewards people in another way.|志愿工作完全无偿，却以另一种方式回报人们。', freq: 2 },
+  orderly: { l1: 'The books are placed in an orderly way.|书籍摆放得井井有条。', l2: 'Under the students\u2019 guidance, the crowd moved forward in an orderly line.|在学生的引导下，人群有序地向前移动。', freq: 2 },
+  responsible: { l1: 'He is responsible for the front desk.|他负责前台。', l2: 'A responsible citizen is the one who acts even when nobody is watching.|有责任心的公民，是无人注视时依然行动的人。', freq: 3 },
+  scattered: { l1: 'Papers were scattered all over the floor.|纸张散落一地。', l2: 'Scattered rubbish along the river was cleared away within two hours.|河边散落的垃圾在两小时内被清理干净。', freq: 2 },
+  corridor: { l1: 'The corridor was very quiet.|走廊里非常安静。', l2: 'Posters about low-carbon living now line the corridor of every floor.|每一层的走廊如今都贴满了低碳生活的海报。', freq: 1 },
+  poster: { l1: 'I drew a poster for the show.|我为演出画了一张海报。', l2: 'The poster on the bulletin board caught the eye of every passer-by.|公告栏上的海报吸引了每个路人的目光。', freq: 1 },
+  'bulletin board': { l1: 'Check the bulletin board for notices.|通知请看公告栏。', l2: 'Photos of the volunteers were pinned on the bulletin board near the gate.|志愿者的照片被钉在大门附近的公告栏上。', freq: 1 },
+  'low-carbon': { l1: 'We support a low-carbon lifestyle.|我们支持低碳生活方式。', l2: 'Cycling to school is a simple but effective low-carbon choice.|骑车上学是简单而有效的低碳选择。', freq: 2 },
+  effectively: { l1: 'The problem was solved effectively.|问题得到了有效解决。', l2: 'Sorting waste at home effectively reduces the pressure on the whole city.|在家进行垃圾分类能有效减轻整座城市的压力。', freq: 2 },
+  foster: { l1: 'Reading fosters imagination.|阅读培养想象力。', l2: 'Team projects foster cooperation as well as a sense of social responsibility.|团队项目既培养合作，也培养社会责任感。', freq: 3 },
+  'social responsibility': { l1: 'Everyone has a social responsibility.|每个人都有社会责任。', l2: 'Companies with a strong sense of social responsibility win lasting trust.|有强烈社会责任感的企业赢得长久的信任。', freq: 2 },
+  unforgettable: { l1: 'It was an unforgettable afternoon.|那是一个难忘的下午。', l2: 'The trip turned out to be the most unforgettable experience of my school years.|这次旅行成了我学生时代最难忘的经历。', freq: 2 },
+  valuable: { l1: 'Your advice is very valuable.|你的建议非常宝贵。', l2: 'What I gained was not a prize but a valuable lesson about giving.|我得到的不是奖品，而是关于给予的宝贵一课。', freq: 3 },
+  gentle: { l1: 'She has a gentle voice.|她的声音很温柔。', l2: 'A gentle touch on the shoulder said more than any words could.|肩上温柔的一拍，胜过千言万语。', freq: 2 },
+  priceless: { l1: 'Health is priceless.|健康是无价的。', l2: 'The old photograph was worthless to others but priceless to her.|那张旧照片对别人一文不值，对她却是无价之宝。', freq: 2 },
+  tender: { l1: 'He gave me a tender look.|他温柔地看了我一眼。', l2: 'Her tender smile melted the awkwardness in the room.|她柔和的微笑化解了房间里的尴尬。', freq: 2 },
+  sincere: { l1: 'Please accept my sincere thanks.|请接受我诚挚的谢意。', l2: 'A sincere apology is often harder to give than an expensive gift.|真诚的道歉往往比昂贵的礼物更难给出。', freq: 3 },
+  subtly: { l1: 'The colour changes subtly.|颜色发生着微妙的变化。', l2: 'Kindness subtly reshapes the way we look at strangers.|善意微妙地重塑了我们看待陌生人的方式。', freq: 1 },
+  trivial: { l1: 'Don\u2019t argue over trivial things.|不要为琐事争吵。', l2: 'What seemed trivial to him meant the whole world to that little girl.|在他看来微不足道的事，对那个小女孩却是全世界。', freq: 2 },
+  pure: { l1: 'It was an act of pure kindness.|那是纯粹的善举。', l2: 'He helped out of pure kindness, expecting nothing in return.|他出于纯粹的善意帮忙，不求任何回报。', freq: 2 },
+  touching: { l1: 'It was a touching story.|那是个动人的故事。', l2: 'The most touching moment came when the old man bowed to the students.|最动人的一幕，是老人向学生们鞠躬时。', freq: 2 },
+  tough: { l1: 'Life can be tough sometimes.|生活有时很艰难。', l2: 'However tough the winter was, the neighbours never let her go hungry.|无论冬天多么艰难，邻居们从未让她挨饿。', freq: 3 },
+  ordinary: { l1: 'He is an ordinary worker.|他是一名普通工人。', l2: 'Ordinary people are capable of extraordinary kindness.|平凡的人也能做出不平凡的善举。', freq: 3 },
+  melt: { l1: 'The snow melted quickly.|雪很快融化了。', l2: 'Her warm words melted the ice between the two families.|她温暖的话语融化了两家人之间的坚冰。', freq: 2 },
+  heal: { l1: 'The wound healed in a week.|伤口一周就愈合了。', l2: 'Time heals wounds, but company heals loneliness.|时间治愈伤口，而陪伴治愈孤独。', freq: 2 },
+  trap: { l1: 'The cat was trapped in the box.|猫被困在箱子里。', l2: 'He was trapped in despair until a stranger reached out a hand.|他深陷绝望，直到一位陌生人伸出援手。', freq: 2 },
+  mark: { l1: 'Mark the date on your calendar.|在日历上标出这个日期。', l2: 'That afternoon marked the beginning of a lifelong friendship.|那个下午标志着一段终生友谊的开始。', freq: 3 },
+  reshape: { l1: 'The plan reshaped our schedule.|这个计划重塑了我们的日程。', l2: 'A single encouraging remark can reshape a child\u2019s whole future.|一句鼓励的话，就可能重塑一个孩子的整个未来。', freq: 2 },
+  strike: { l1: 'The idea struck me suddenly.|我突然想到这个主意。', l2: 'What struck me most was the calm confidence in her eyes.|最触动我的，是她眼中平静的自信。', freq: 3 },
+  accumulate: { l1: 'Dust accumulates quickly here.|这里灰尘积得很快。', l2: 'Small kind deeds accumulate into a force that changes a community.|小小的善举积累成改变社区的力量。', freq: 2 },
+  enable: { l1: 'The app enables you to study offline.|这款应用让你可以离线学习。', l2: 'The scholarship enabled her to continue her studies in the city.|这笔奖学金使她得以在城里继续学业。', freq: 3 },
+  despair: { l1: 'He was in deep despair.|他陷入了深深的绝望。', l2: 'In her darkest despair, a single phone call pulled her back.|在最深的绝望中，一通电话把她拉了回来。', freq: 2 },
+  miracle: { l1: 'It was a real miracle.|那真是个奇迹。', l2: 'Kindness does not need a miracle; kindness is the miracle.|善意不需要奇迹，善意本身就是奇迹。', freq: 2 },
+  deed: { l1: 'One good deed a day.|每天一件好事。', l2: 'He is judged by his deeds rather than by his promises.|评判他的是行为，而非承诺。', freq: 2 },
+  blessing: { l1: 'Her health is a blessing.|她的健康是一种福气。', l2: 'What once looked like bad luck later proved to be a blessing.|曾经看似厄运的事，后来证明是一种恩赐。', freq: 2 },
+  gesture: { l1: 'He made a friendly gesture.|他做了个友好的姿态。', l2: 'A small gesture of respect can change the tone of an entire conversation.|一个小小的尊重姿态，就能改变整段对话的气氛。', freq: 2 },
+  potential: { l1: 'She has great potential.|她潜力很大。', l2: 'Good teachers see the potential that students cannot yet see in themselves.|好老师能看见学生自己尚未看见的潜力。', freq: 3 },
+  devotion: { l1: 'Her devotion moved us all.|她的奉献感动了我们所有人。', l2: 'Thirty years of quiet devotion turned a bare hill into a forest.|三十年默默的奉献，让荒山变成了森林。', freq: 2 },
+  accompany: { l1: 'I\u2019ll accompany you to the station.|我陪你去车站。', l2: 'Volunteers accompany the elderly on their weekly walk in the park.|志愿者每周陪老人在公园散步。', freq: 2 },
+  existence: { l1: 'The lake\u2019s existence surprised us.|这座湖的存在令我们惊讶。', l2: 'Their quiet help gave meaning to an otherwise ordinary existence.|他们默默的帮助，为原本平凡的生活赋予了意义。', freq: 1 },
+  'light up': { l1: 'Fireworks lit up the sky.|烟花点亮了夜空。', l2: 'The news lit up her face in a way I had never seen before.|这个消息让她的脸上绽放出我从未见过的神采。', freq: 2 },
+  'serve as': { l1: 'The box served as a table.|这个箱子当桌子用。', l2: 'The old bicycle served as a bridge between the two neighbours.|那辆旧自行车成了两位邻居之间的桥梁。', freq: 3 },
+  'circle back': { l1: 'Let\u2019s circle back to that point later.|我们稍后再回到那个话题。', l2: 'Kindness always circles back to the one who gives it.|善意总会回到给予它的人身上。', freq: 1 },
+  'move forward': { l1: 'We must move forward together.|我们必须一起前行。', l2: 'Even after the loss, the family chose to move forward with courage.|即使经历失去，这家人依然选择勇敢前行。', freq: 2 },
+  'full of': { l1: 'The room is full of light.|房间里充满阳光。', l2: 'Her letter was full of gratitude for people she had never met.|她的信里满是对素未谋面之人的感激。', freq: 2 },
+  'drive away': { l1: 'The sun drove away the cold.|阳光驱散了寒意。', l2: 'A cup of hot tea drove away the chill of the winter night.|一杯热茶驱散了冬夜的寒意。', freq: 2 },
+  'account for': { l1: 'Girls account for half the class.|女生占全班的一半。', l2: 'The heavy rain accounts for the low turnout at the event.|大雨解释了这次活动出席人数少的原因。', freq: 3 },
+  'adapt to': { l1: 'He soon adapted to the new school.|他很快适应了新学校。', l2: 'Students who adapt to change quickly tend to perform better under pressure.|能快速适应变化的学生，往往在压力下表现更好。', freq: 3 },
+  'apply for': { l1: 'I applied for the job online.|我在网上申请了这份工作。', l2: 'She applied for the volunteer programme and was accepted within a week.|她申请了志愿项目，一周内就被录取。', freq: 3 },
+  'approve of': { l1: 'My parents approve of my plan.|父母赞成我的计划。', l2: 'Not everyone approved of the idea at first, but the results spoke for themselves.|起初并非人人赞成，但结果不言自明。', freq: 2 },
+  'benefit from': { l1: 'Everyone benefits from exercise.|人人都从运动中受益。', l2: 'Both the helper and the helped benefit from an act of kindness.|善举之中，施助者与受助者都会受益。', freq: 3 },
+  'contribute to': { l1: 'Exercise contributes to good health.|运动有益健康。', l2: 'Careless driving contributed to the accident, the report concluded.|报告认定，粗心驾驶是事故的诱因之一。', freq: 3 },
+  'concentrate on': { l1: 'Concentrate on your homework.|专心做作业。', l2: 'Turning off the phone helped him concentrate on the task at hand.|关掉手机帮他专注于手头的任务。', freq: 2 },
+  'depend on': { l1: 'It depends on the weather.|这取决于天气。', l2: 'Whether the plan works depends on how many volunteers we can find.|计划是否奏效，取决于我们能找到多少志愿者。', freq: 3 },
+  'result in': { l1: 'The storm resulted in delays.|暴风雨导致了延误。', l2: 'A moment of carelessness resulted in a mistake that took days to fix.|一时的粗心导致了一个花了数天才修好的错误。', freq: 3 },
+  'stick to': { l1: 'Stick to your plan.|坚持你的计划。', l2: 'He stuck to the promise he had made, however hard it became.|无论后来多难，他都信守了自己的承诺。', freq: 3 },
+  'break down': { l1: 'The car broke down on the way.|车在半路抛锚了。', l2: 'The old machine broke down again, and so did his patience.|那台旧机器又坏了，他的耐心也一同崩溃。', freq: 3 },
+  'break out': { l1: 'A fire broke out last night.|昨晚发生了火灾。', l2: 'Panic broke out in the hall until a calm voice took control.|大厅里一片恐慌，直到一个冷静的声音掌控了局面。', freq: 3 },
+  'call off': { l1: 'The match was called off.|比赛被取消了。', l2: 'The outdoor activity was called off because of the heavy rain.|由于大雨，户外活动被取消。', freq: 2 },
+  'give up': { l1: 'Never give up.|永不放弃。', l2: 'He almost gave up, but a stranger\u2019s encouragement kept him going.|他几乎放弃，但陌生人的鼓励让他坚持了下来。', freq: 3 },
+  'give away': { l1: 'She gave away her old books.|她把旧书送人了。', l2: 'His trembling voice gave away the nervousness he tried to hide.|颤抖的声音泄露了他极力掩饰的紧张。', freq: 3 },
+  'go through': { l1: 'We went through a hard time.|我们经历了一段艰难时光。', l2: 'After going through the files, the teacher found the missing form.|翻查文件后，老师找到了遗失的表格。', freq: 3 },
+  'look into': { l1: 'The police will look into it.|警方会调查此事。', l2: 'The committee promised to look into the residents\u2019 complaints.|委员会承诺调查居民的投诉。', freq: 2 },
+  'pick up': { l1: 'He picked up the pen.|他捡起了笔。', l2: 'She picked up Spanish in a year and picked up her sister after school every day.|她一年就学会了西班牙语，还每天放学去接妹妹。', freq: 3 },
+  'put off': { l1: 'Don\u2019t put off till tomorrow what you can do today.|今日事，今日毕。', l2: 'The meeting was put off until the end of the month.|会议被推迟到了月底。', freq: 2 },
+  'turn out': { l1: 'It turned out to be a joke.|结果那是个玩笑。', l2: 'The stranger turned out to be the doctor who had saved his life.|那个陌生人原来是救过他命的医生。', freq: 3 },
+  support: { l1: 'He works hard to support his family.|他努力工作以养家。', l2: 'Two stone pillars support the roof, just as he supports the whole family.|两根石柱支撑着屋顶，正如他支撑着整个家。', freq: 3 },
+  address: { l1: 'We must address the problem at once.|我们必须立刻解决这个问题。', l2: 'The mayor addressed the housing issue in his speech to the public.|市长在公开讲话中回应并着手解决住房问题。', freq: 3 },
+  deliver: { l1: 'He delivered a speech.|他发表了演讲。', l2: 'The postman delivered the parcel, and the headmaster delivered the closing speech.|邮递员送来了包裹，校长发表了闭幕演讲。', freq: 3 },
+  observe: { l1: 'We observe the rules.|我们遵守规则。', l2: 'The family observes the festival every year and observes the old customs closely.|这家人每年庆祝这个节日，并严格遵守旧俗。', freq: 3 },
+  acknowledge: { l1: 'He acknowledged his mistake.|他承认了错误。', l2: 'She acknowledged the help she had received and thanked every donor by name.|她感念自己受过的帮助，并逐一致谢每位捐助者。', freq: 3 },
+  generous: { l1: 'He is generous with his time.|他乐于付出自己的时间。', l2: 'A generous heart gives without keeping an account.|慷慨的心付出而不计较。', freq: 3 },
+  selfless: { l1: 'Her selfless help moved us.|她无私的帮助感动了我们。', l2: 'Selfless devotion, rather than talent, made him a respected teacher.|让他成为受人尊敬的老师的，是无私的奉献，而非天赋。', freq: 2 },
+  reliable: { l1: 'He is a reliable friend.|他是个可靠的朋友。', l2: 'In an emergency, a reliable partner matters more than a clever one.|危急时刻，可靠的伙伴比聪明的伙伴更重要。', freq: 3 },
+  modest: { l1: 'She is modest about her success.|她对自己的成功很谦虚。', l2: 'Though widely praised, he remained modest and kept working quietly.|尽管广受赞誉，他依然谦逊，默默耕耘。', freq: 2 },
+  determined: { l1: 'She is determined to win.|她决心获胜。', l2: 'Determined to finish the race, he limped across the finish line.|他决心跑完全程，一瘸一拐地冲过终点。', freq: 3 },
+  grateful: { l1: 'I\u2019m grateful for your help.|感谢你的帮助。', l2: 'I am deeply grateful to everyone who stood by me that year.|我深深感激那一年陪在我身边的每一个人。', freq: 3 },
+  ashamed: { l1: 'He felt ashamed of his words.|他为自己的话感到羞愧。', l2: 'Ashamed of his rudeness, he wrote a letter of apology that night.|为自己的无礼感到羞愧，他当晚写了封道歉信。', freq: 2 },
+  embarrassed: { l1: 'I was too embarrassed to ask.|我不好意思开口问。', l2: 'Embarrassed by the mistake, she blushed and lowered her head.|因这个错误而尴尬，她红着脸低下了头。', freq: 2 },
+  relieved: { l1: 'I\u2019m relieved to hear that.|听到这个我就放心了。', l2: 'Relieved that everyone was safe, the firefighters finally sat down.|得知所有人都平安，消防员们终于坐了下来。', freq: 2 },
+  desperate: { l1: 'He was desperate for help.|他急需帮助。', l2: 'Desperate for a chance, she knocked on every door in the street.|为了一个机会，她敲遍了整条街的门。', freq: 2 },
+  awareness: { l1: 'Public awareness is growing.|公众意识正在增强。', l2: 'The campaign raised awareness of how much water a family wastes every day.|该活动提高了人们对家庭每日浪费水量的认识。', freq: 3 },
+  gratitude: { l1: 'She expressed her gratitude.|她表达了感激之情。', l2: 'Gratitude is best shown in action rather than in words.|感激最好用行动而非言语来表达。', freq: 3 },
+  harmony: { l1: 'They live in harmony.|他们和睦相处。', l2: 'Respect for differences is the foundation of social harmony.|尊重差异是社会和谐的基础。', freq: 2 },
+  sympathy: { l1: 'I have great sympathy for them.|我非常同情他们。', l2: 'Sympathy without action rarely changes anything.|没有行动的同情，很少能改变什么。', freq: 2 },
+  courage: { l1: 'It takes courage to say sorry.|说声对不起需要勇气。', l2: 'Courage is not the absence of fear but the decision to act anyway.|勇气不是没有恐惧，而是依然选择行动。', freq: 3 },
+};
+
+// ===== L3 real movie/literature quotes (verified sources) =====
+const MEDIA: Record<string, MediaEntry> = {
+  'give up': { quote: 'You got a dream, you gotta protect it.|有了梦想，就要守护它。', source: '电影《当幸福来敲门》' },
+  tough: { quote: 'It ain\u2019t about how hard you hit. It\u2019s about how hard you can get hit and keep moving forward.|重要的不是你出拳多重，而是你能承受多重的打击后依然向前。', source: '电影《洛奇》' },
+  'move forward': { quote: 'It ain\u2019t about how hard you hit. It\u2019s about how hard you can get hit and keep moving forward.|重要的不是你出拳多重，而是你能承受多重的打击后依然向前。', source: '电影《洛奇》' },
+  courage: { quote: 'Being brave doesn\u2019t mean you go looking for trouble.|勇敢并不意味着你要去自找麻烦。', source: '电影《狮子王》' },
+  determined: { quote: 'Whether you think you can or you think you can\u2019t, you\u2019re right.|无论你认为自己行还是不行，你都是对的。', source: 'Henry Ford' },
+  miracle: { quote: 'There are only two ways to live your life: as though nothing is a miracle, or as though everything is a miracle.|人生只有两种活法：一种是认为没有奇迹，另一种是认为处处皆奇迹。', source: 'Albert Einstein' },
+  deed: { quote: 'How far that little candle throws his beams! So shines a good deed in a naughty world.|那小小的烛光能照多远！善行在浊世中就是这样闪耀。', source: '莎士比亚《威尼斯商人》' },
+  despair: { quote: 'Even the darkest night will end and the sun will rise.|再黑的夜也会结束，太阳终将升起。', source: '雨果《悲惨世界》' },
+  'light up': { quote: 'Happiness can be found even in the darkest of times, if one only remembers to turn on the light.|即使在最黑暗的时刻也能找到幸福，只要记得点亮那盏灯。', source: '电影《哈利·波特》' },
+  accompany: { quote: 'You can\u2019t stay in your corner of the Forest waiting for others to come to you. You have to go to them sometimes.|你不能只待在森林的角落里等别人来找你，有时候你得主动走过去。', source: 'A. A. Milne《小熊维尼》' },
+  pure: { quote: 'It is only with the heart that one can see rightly; what is essential is invisible to the eye.|只有用心才能看得清楚，本质的东西用眼睛是看不见的。', source: '《小王子》' },
+  sincere: { quote: 'It is only with the heart that one can see rightly; what is essential is invisible to the eye.|只有用心才能看得清楚，本质的东西用眼睛是看不见的。', source: '《小王子》' },
+  generous: { quote: 'No one has ever become poor by giving.|从没有人因为给予而变得贫穷。', source: 'Anne Frank《安妮日记》' },
+  selfless: { quote: 'Service to others is the rent you pay for your room here on Earth.|服务他人，是你为在这世上占有一席之地所付的房租。', source: 'Muhammad Ali' },
+  devotion: { quote: 'Service to others is the rent you pay for your room here on Earth.|服务他人，是你为在这世上占有一席之地所付的房租。', source: 'Muhammad Ali' },
+  'reach out a hand': { quote: 'The best way to find yourself is to lose yourself in the service of others.|找到自我的最好方式，是投身于为他人服务之中。', source: 'Mahatma Gandhi' },
+  transform: { quote: 'Be the change that you wish to see in the world.|欲变世界，先成为你希望看到的那个改变。', source: 'Mahatma Gandhi' },
+  reshape: { quote: 'Be the change that you wish to see in the world.|欲变世界，先成为你希望看到的那个改变。', source: 'Mahatma Gandhi' },
+  awareness: { quote: 'The greatest threat to our planet is the belief that someone else will save it.|对地球最大的威胁，是相信会有别人来拯救它。', source: 'Robert Swan（极地探险家）' },
+  'low-carbon': { quote: 'The greatest threat to our planet is the belief that someone else will save it.|对地球最大的威胁，是相信会有别人来拯救它。', source: 'Robert Swan（极地探险家）' },
+  harmony: { quote: 'We may have different religions, different languages, different coloured skin, but we all belong to one human race.|我们或许信仰不同、语言不同、肤色不同，但我们同属一个人类。', source: 'Kofi Annan（前联合国秘书长）' },
+  sympathy: { quote: 'If you want others to be happy, practice compassion. If you want to be happy, practice compassion.|若愿他人幸福，请修慈悲；若愿自己幸福，亦请修慈悲。', source: 'Dalai Lama' },
+  ordinary: { quote: 'Some of us get dipped in flat, some in satin, some in gloss. But every once in a while you find someone who\u2019s iridescent.|有人平淡，有人如缎，有人光亮；但偶尔你会遇到一个浑身流光溢彩的人。', source: '电影《怦然心动》' },
+  grateful: { quote: 'Enjoy the little things, for one day you may look back and realise they were the big things.|珍惜小事，因为有一天回头看，你会发现它们就是大事。', source: 'Robert Brault' },
+  gratitude: { quote: 'Enjoy the little things, for one day you may look back and realise they were the big things.|珍惜小事，因为有一天回头看，你会发现它们就是大事。', source: 'Robert Brault' },
+  heal: { quote: 'The wound is the place where the Light enters you.|伤口正是光照进你身体的地方。', source: 'Rumi（鲁米）' },
+  potential: { quote: 'Everybody is a genius. But if you judge a fish by its ability to climb a tree, it will live its whole life believing that it is stupid.|每个人都是天才。但若用爬树的本事去评判一条鱼，它会终其一生认为自己愚蠢。', source: '常引于 Einstein 语录集' },
+};
+
+// Custom imported examples (for custom word lists)
+const CUSTOM: Record<string, CustomEntry[]> = {};
+
+function _split(s: string): { en: string; zh: string } {
+  const i = s.indexOf('|');
+  return i < 0 ? { en: s, zh: '' } : { en: s.slice(0, i), zh: s.slice(i + 1) };
+}
+
+function _key(en: string): string {
+  return String(en || '')
+    .replace(/[\u2018\u2019]/g, "'")
+    .trim()
+    .toLowerCase();
+}
+
+let _index: {
+  lib: Record<string, LibEntry>;
+  media: Record<string, MediaEntry>;
+} | null = null;
+
+function _buildIndex(): {
+  lib: Record<string, LibEntry>;
+  media: Record<string, MediaEntry>;
+} {
+  if (_index) return _index;
+  const idx: { lib: Record<string, LibEntry>; media: Record<string, MediaEntry> } = { lib: {}, media: {} };
+  Object.keys(LIB).forEach((k) => {
+    idx.lib[_key(k)] = LIB[k];
+  });
+  Object.keys(MEDIA).forEach((k) => {
+    idx.media[_key(k)] = MEDIA[k];
+  });
+  _index = idx;
+  return idx;
+}
+
+/** Find a related real corpus sentence from the vocab data */
+function _related(
+  en: string,
+  vocabData: VocabData | null,
+): { en: string; zh: string; source: string } | null {
+  if (!vocabData) return null;
+  const target = _key(en);
+  let hostChapter: { chapters: typeof vocabData.chapters } | null = null;
+
+  for (const ch of vocabData.chapters) {
+    for (const sec of ch.sections) {
+      for (const g of sec.groups) {
+        if ((g.items || []).some((it) => _key(it.en) === target)) {
+          hostChapter = { chapters: vocabData.chapters };
+          break;
+        }
+      }
+      if (hostChapter) break;
+    }
+    if (hostChapter) break;
+  }
+
+  if (!hostChapter) return null;
+
+  const collect = (chapters: typeof vocabData.chapters): Item[] => {
+    const arr: Item[] = [];
+    chapters.forEach((ch) =>
+      ch.sections.forEach((sec) =>
+        sec.groups.forEach((g) => {
+          if (g.type === 'sentence')
+            (g.items || []).forEach((it) => arr.push(it));
+        }),
+      ),
+    );
+    return arr;
+  };
+
+  const pool = collect(hostChapter.chapters).filter(
+    (it) => _key(it.en) !== target,
+  );
+  if (!pool.length) return null;
+
+  let h = 0;
+  for (let i = 0; i < target.length; i++) {
+    h = (h * 31 + target.charCodeAt(i)) >>> 0;
+  }
+  const pick = pool[h % pool.length];
+  return { en: pick.en, zh: pick.zh, source: '真实语块 · 关联拓展' };
+}
+
+/**
+ * Get three-tier example sentences for a word.
+ * @returns Array of {tier, label, en, zh, tag}
+ */
+export function getExamples(
+  en: string,
+  zh?: string,
+  _pos?: string,
+  vocabData?: VocabData | null,
+): ExampleSentence[] {
+  const idx = _buildIndex();
+  const key = _key(en);
+  const entry = idx.lib[key];
+  const out: ExampleSentence[] = [];
+
+  if (entry) {
+    const a = _split(entry.l1);
+    const b = _split(entry.l2);
+    const freq = entry.freq || 2;
+    out.push({ tier: 1, label: '入门', en: a.en, zh: a.zh, tag: '场景短句' });
+    out.push({
+      tier: 2,
+      label: '进阶',
+      en: b.en,
+      zh: b.zh,
+      tag: '真题风格 · 考频 ' + '★'.repeat(freq) + '☆'.repeat(3 - freq),
+    });
+  } else {
+    const cust = CUSTOM[key];
+    if (cust && cust.length) {
+      out.push({ tier: 1, label: '入门', en: cust[0].en, zh: cust[0].zh || '', tag: '导入例句' });
+      if (cust[1])
+        out.push({ tier: 2, label: '进阶', en: cust[1].en, zh: cust[1].zh || '', tag: '导入例句' });
+    } else {
+      out.push({ tier: 1, label: '入门', en: en, zh: zh || '', tag: '词条本体' });
+    }
+  }
+
+  const media = idx.media[key];
+  if (media) {
+    const m = _split(media.quote);
+    out.push({ tier: 3, label: '拓展', en: m.en, zh: m.zh, tag: '原声出处 · ' + media.source });
+  } else {
+    const rel = _related(en, vocabData || null);
+    if (rel)
+      out.push({ tier: 3, label: '拓展', en: rel.en, zh: rel.zh, tag: rel.source });
+  }
+
+  return out;
+}
+
+/** Register custom example sentences (for imported word lists) */
+export function registerCustom(
+  en: string,
+  list: Array<string | CustomEntry>,
+): void {
+  if (!en || !Array.isArray(list) || !list.length) return;
+  const key = _key(en);
+  const norm = list
+    .slice(0, 3)
+    .map((it) => {
+      if (typeof it === 'string') return _split(it);
+      return { en: it.en || '', zh: it.zh || '' };
+    })
+    .filter((x) => x.en);
+  if (norm.length) CUSTOM[key] = norm;
+}
