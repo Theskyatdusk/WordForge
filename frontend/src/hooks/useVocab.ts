@@ -113,7 +113,8 @@ loadCustomVocab();
 export function useVocab() {
   const [data, setData] = useState<VocabData>(cachedData);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  // 后端不可用时使用 mock 数据作为后备，error 始终为 false，不显示错误
+  const [error] = useState(false);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -156,8 +157,7 @@ export function useVocab() {
           }
         })
         .catch(() => {
-          // Silent failure — mock data is sufficient
-          setError(false);
+          // 后端不可用时使用 mock 数据，不显示错误
         });
     }
   }, []);

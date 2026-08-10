@@ -1,7 +1,7 @@
 """Pydantic v2 schemas for request/response validation."""
 from __future__ import annotations
 from typing import Any, Optional, Union
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ============================================================
@@ -21,7 +21,7 @@ class GroupOut(BaseModel):
     title: str
     type: str
     order: int
-    items: list[ItemOut] = []
+    items: list[ItemOut] = Field(default_factory=list)
 
 
 class SectionOut(BaseModel):
@@ -29,7 +29,7 @@ class SectionOut(BaseModel):
     chapter_id: str
     title: str
     order: int
-    groups: list[GroupOut] = []
+    groups: list[GroupOut] = Field(default_factory=list)
 
 
 class ChapterOut(BaseModel):
@@ -39,7 +39,7 @@ class ChapterOut(BaseModel):
     icon: str
     color: str
     order: int
-    sections: list[SectionOut] = []
+    sections: list[SectionOut] = Field(default_factory=list)
 
 
 class ChapterBrief(BaseModel):
@@ -82,7 +82,7 @@ class WordProgressOut(BaseModel):
 
 class WordProgressUpdateIn(BaseModel):
     word_id: str
-    grade: Union[bool, str]  # True, False, or 'familiar'
+    grade: Union[bool, str]  # True (correct), False (wrong), or "familiar"
     responded_ms: Optional[float] = None
 
 
@@ -169,9 +169,9 @@ class WordbookEntryCreate(BaseModel):
 #  Study sessions
 # ============================================================
 class StudySessionCreate(BaseModel):
-    words_studied: int = 0
-    correct: int = 0
-    wrong: int = 0
+    words_studied: int = Field(0, ge=0)
+    correct: int = Field(0, ge=0)
+    wrong: int = Field(0, ge=0)
     mode: str = "flashcard"
 
 
@@ -181,7 +181,7 @@ class StudySessionOut(BaseModel):
     correct: int
     wrong: int
     sessions: int
-    modes: list[str]
+    modes: list[str] = Field(default_factory=list)
 
 
 # ============================================================

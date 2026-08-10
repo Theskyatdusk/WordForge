@@ -81,7 +81,8 @@ export function Dashboard() {
   }, [allItems, wordProgress]);
 
   const todayStudy = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    // 使用本地日期，避免 toISOString() 返回 UTC 日期导致 UTC+8 晚 8 点后变成第二天
+    const today = new Date().toLocaleDateString('sv-SE');
     return (
       studyHistory.find((s) => s.date === today) || {
         date: today,
@@ -113,7 +114,8 @@ export function Dashboard() {
     return '晚上好';
   }, [now]);
 
-  const isCheckedIn = streak.last_check_in === new Date().toISOString().slice(0, 10);
+  // 使用本地日期判断是否已打卡，避免 toISOString() 的 UTC 偏移问题
+  const isCheckedIn = streak.last_check_in === new Date().toLocaleDateString('sv-SE');
 
   const equippedBadgeEmoji = useMemo(
     () => (equippedBadge ? BADGES.find((b) => b.id === equippedBadge)?.emoji : null),

@@ -2,6 +2,7 @@
 import time
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from database import get_db
 from models import WordbookEntry
@@ -47,7 +48,15 @@ def add_to_wordbook(body: WordbookEntryCreate, db: Session = Depends(get_db)):
         added_at=time.time(),
     )
     db.add(entry)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Race condition: another request inserted the same word_id first
+        db.rollback()
+        existing = db.query(WordbookEntry).filter(WordbookEntry.word_id == body.word_id).first()
+        if existing:
+            return existing
+        raise
     db.refresh(entry)
 
     # Check achievements (wordbook10)

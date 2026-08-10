@@ -481,9 +481,26 @@ SEED_DATA = [
 
 def seed_vocabulary(db: Session) -> None:
     """Insert all seed chapters/sections/groups/items (idempotent)."""
-    # If chapters already exist, skip
-    if db.query(Chapter).count() > 0:
-        return
+    # Check that ALL expected chapters exist (not just any chapter)
+    expected_ids = {ch["id"] for ch in SEED_DATA}
+    existing_ids = {c.id for c in db.query(Chapter).all()}
+    if expected_ids.issubset(existing_ids):
+        return  # All chapters already seeded
+
+    # Remove any partially-seeded chapters that are in our expected set
+    partial_ids = existing_ids & expected_ids
+    if partial_ids:
+        for pid in partial_ids:
+            # Delete items -> groups -> sections -> chapter (cascade manually)
+            ch = db.query(Chapter).filter(Chapter.id == pid).first()
+            if ch:
+                for sec in db.query(Section).filter(Section.chapter_id == pid).all():
+                    for grp in db.query(Group).filter(Group.section_id == sec.id).all():
+                        db.query(Item).filter(Item.group_id == grp.id).delete()
+                        db.delete(grp)
+                    db.delete(sec)
+                db.delete(ch)
+        db.commit()
 
     for ch_data in SEED_DATA:
         chapter = Chapter(
@@ -545,6 +562,9 @@ def run_seed() -> None:
     try:
         seed_vocabulary(db)
         seed_defaults(db)
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 

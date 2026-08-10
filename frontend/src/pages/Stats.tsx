@@ -128,10 +128,13 @@ export function Stats() {
 
   const maxWords = Math.max(...chartData.map((d) => d.words), 1);
 
-  // Mode distribution
+  // Mode distribution (filtered by selected date range)
   const modeStats = useMemo(() => {
+    const days = range === '7' ? 7 : 30;
+    const dateSet = new Set(lastNDays(days));
     const modes: Record<string, number> = {};
     for (const entry of studyHistory) {
+      if (!dateSet.has(entry.date)) continue;
       for (const [mode, count] of Object.entries(entry.modes)) {
         modes[mode] = (modes[mode] || 0) + count;
       }
@@ -158,7 +161,7 @@ export function Stats() {
         color: modeColors[mode] || 'var(--teal-500)',
       }))
       .sort((a, b) => b.count - a.count);
-  }, [studyHistory]);
+  }, [studyHistory, range]);
 
   return (
     <div className="space-y-5 animate-fade-in">

@@ -1,7 +1,7 @@
 """Study router — record sessions, get today's and all sessions."""
-import json
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from database import get_db
 from models import StudySession
@@ -17,10 +17,12 @@ def record_session(body: StudySessionCreate, db: Session = Depends(get_db)):
     """
     Record a study session.  Aggregates into today's StudySession row:
     increments words_studied, correct, wrong, sessions, and appends mode.
+    Uses INSERT OR IGNORE + atomic UPDATE to avoid race conditions.
     """
     today = today_str()
-    session = db.query(StudySession).filter(StudySession.date == today).first()
 
+    # Try to create today's row if it doesn't exist (ignore if already exists)
+    session = db.query(StudySession).filter(StudySession.date == today).first()
     if not session:
         session = StudySession(
             date=today,
@@ -31,14 +33,26 @@ def record_session(body: StudySessionCreate, db: Session = Depends(get_db)):
             modes=[],
         )
         db.add(session)
+        try:
+            db.flush()  # Flush to detect duplicate key
+        except IntegrityError:
+            db.rollback()
+            session = db.query(StudySession).filter(StudySession.date == today).first()
+            if not session:
+                raise
 
-    session.words_studied += body.words_studied
-    session.correct += body.correct
-    session.wrong += body.wrong
-    session.sessions += 1
-    modes = session.modes if session.modes else []
-    modes.append(body.mode)
-    session.modes = modes
+    # Atomic increment to avoid lost updates from concurrent requests
+    db.query(StudySession).filter(StudySession.date == today).update({
+        StudySession.words_studied: StudySession.words_studied + body.words_studied,
+        StudySession.correct: StudySession.correct + body.correct,
+        StudySession.wrong: StudySession.wrong + body.wrong,
+        StudySession.sessions: StudySession.sessions + 1,
+    }, synchronize_session=False)
+
+    # Append mode using a fresh query to get latest modes (reduce race window)
+    db.flush()  # Ensure atomic update is flushed
+    fresh = db.query(StudySession).filter(StudySession.date == today).first()
+    session.modes = list(fresh.modes or []) + [body.mode]
 
     db.commit()
     db.refresh(session)

@@ -24,6 +24,31 @@ function localDateStr(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+/** Get yesterday's date string, using date arithmetic to avoid DST issues. */
+function yesterdayDateStr(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return localDateStr(d);
+}
+
+// Level titles for display — indexed by level number (1-based)
+const LEVEL_TITLES = [
+  '词汇学徒',   // 1
+  '词汇探索者', // 2
+  '词汇行者',   // 3
+  '词汇能手',   // 4
+  '词汇达人',   // 5
+  '词汇专家',   // 6
+  '词汇大师',   // 7
+  '词汇宗师',   // 8
+  '词汇传说',   // 9
+  '词汇之神',   // 10+
+];
+
+function getLevelTitle(level: number): string {
+  return LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)] || '词汇学徒';
+}
+
 const STORAGE_KEY = 'wordforge_progress';
 
 // Debounce timer for backend sync — avoids uploading on every keystroke
@@ -44,6 +69,11 @@ interface ProgressState {
   purchasedThemes: string[];
   equippedTheme: string | null;
   purchasedItems: string[];
+
+  // Internal sync state (transient — not persisted to localStorage)
+  _syncing: boolean;
+  _lastSync: number;
+  _pendingSync: boolean;
 
   // Actions
   loadFromStorage: () => void;
@@ -133,6 +163,10 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   equippedTheme: null,
   purchasedItems: [],
 
+  _syncing: false,
+  _lastSync: 0,
+  _pendingSync: false,
+
   loadFromStorage: () => {
     const stored = loadStored();
     set(stored);
@@ -213,6 +247,8 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
       newLevel.level += 1;
       newLevel.nextLevelXp = Math.round(newLevel.nextLevelXp * 1.5);
     }
+    // Update title to match current level
+    newLevel.title = getLevelTitle(newLevel.level);
     newLevel.mastered = Object.values(newWordProgress).filter((p) => p.status === 'mastered').length;
     newLevel.progress = newLevel.nextLevelXp > 0 ? newLevel.xp / newLevel.nextLevelXp : 0;
 
@@ -299,7 +335,8 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     const today = localDateStr();
     if (state.streak.last_check_in === today) return false;
 
-    const yesterday = localDateStr(new Date(Date.now() - 86400000));
+    // Use date arithmetic instead of ms subtraction to avoid DST issues
+    const yesterday = yesterdayDateStr();
     const newCurrent =
       state.streak.last_check_in === yesterday
         ? state.streak.current + 1
@@ -449,6 +486,12 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   syncToBackend: () => {
     if (typeof window === 'undefined') return;
     const s = get();
+    // If already syncing, mark pending and return — will sync after current completes
+    if (s._syncing) {
+      set({ _pendingSync: true });
+      return;
+    }
+    set({ _syncing: true, _pendingSync: false });
     const payload = {
       wordProgress: s.wordProgress,
       streak: s.streak,
@@ -466,7 +509,22 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
       purchasedItems: s.purchasedItems,
       syncedAt: Date.now(),
     };
-    syncApi.upload(payload);
+    syncApi
+      .upload(payload)
+      .then(() => {
+        set({ _syncing: false, _lastSync: Date.now() });
+        // If changes happened during sync, re-sync
+        if (get()._pendingSync) {
+          get().syncToBackend();
+        }
+      })
+      .catch(() => {
+        // 静默失败，下次操作时会自动重试
+        set({ _syncing: false });
+        if (get()._pendingSync) {
+          get().syncToBackend();
+        }
+      });
   },
 
   syncFromBackend: async () => {
@@ -539,20 +597,43 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
       const mergedPurchasedThemes = Array.from(new Set([...(data.purchasedThemes || []), ...get().purchasedThemes]));
       const mergedPurchasedItems = Array.from(new Set([...(data.purchasedItems || []), ...get().purchasedItems]));
 
+      // Merge dailyTasks: take union, prefer completed/claimed=true (user progress should not be lost)
+      const localTasks = get().dailyTasks;
+      const remoteTasks = data.dailyTasks || [];
+      const taskMap = new Map<string, DailyTask>();
+      for (const t of remoteTasks) {
+        taskMap.set(t.task_id, t);
+      }
+      for (const t of localTasks) {
+        const existing = taskMap.get(t.task_id);
+        if (!existing) {
+          taskMap.set(t.task_id, t);
+        } else {
+          // Merge: take completed/claimed=true if either source has it
+          taskMap.set(t.task_id, {
+            ...existing,
+            completed: existing.completed || t.completed,
+            claimed: existing.claimed || t.claimed,
+          });
+        }
+      }
+      const mergedDailyTasks = Array.from(taskMap.values());
+
       set({
         wordProgress: mergedWP,
         streak: data.streak?.current > get().streak.current ? (data.streak || defaultStreak()) : get().streak,
         level: mergedLevel,
         studyHistory: mergedHistory,
-        dailyTasks: data.dailyTasks || [],
+        dailyTasks: mergedDailyTasks,
         coins: mergedCoins,
         mistakes: mergedMistakes,
         wordbook: mergedWordbook,
         achievements: mergedAchievements,
-        equippedBadge: data.equippedBadge ?? get().equippedBadge,
+        // Prefer local equipped items (user's current selection takes priority)
+        equippedBadge: get().equippedBadge ?? data.equippedBadge ?? null,
         purchasedBadges: mergedPurchasedBadges,
         purchasedThemes: mergedPurchasedThemes,
-        equippedTheme: data.equippedTheme ?? get().equippedTheme,
+        equippedTheme: get().equippedTheme ?? data.equippedTheme ?? null,
         purchasedItems: mergedPurchasedItems,
       });
 

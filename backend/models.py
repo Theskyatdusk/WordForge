@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Any, Optional
 from datetime import datetime
-from sqlalchemy import String, Integer, Float, Boolean, Text, ForeignKey, JSON, DateTime
+from sqlalchemy import String, Integer, Float, Boolean, Text, ForeignKey, JSON, DateTime, Index
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from database import Base
 
@@ -24,9 +24,10 @@ class Chapter(Base):
 
 class Section(Base):
     __tablename__ = "sections"
+    __table_args__ = (Index("ix_sections_chapter_id", "chapter_id"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    chapter_id: Mapped[str] = mapped_column(ForeignKey("chapters.id"))
+    chapter_id: Mapped[str] = mapped_column(ForeignKey("chapters.id"), index=True)
     title: Mapped[str] = mapped_column(String)
     order: Mapped[int] = mapped_column(Integer)
 
@@ -38,9 +39,10 @@ class Section(Base):
 
 class Group(Base):
     __tablename__ = "groups"
+    __table_args__ = (Index("ix_groups_section_id", "section_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    section_id: Mapped[str] = mapped_column(ForeignKey("sections.id"))
+    section_id: Mapped[str] = mapped_column(ForeignKey("sections.id"), index=True)
     title: Mapped[str] = mapped_column(String)
     type: Mapped[str] = mapped_column(String)  # word / phrase / sentence
     order: Mapped[int] = mapped_column(Integer)
@@ -53,9 +55,10 @@ class Group(Base):
 
 class Item(Base):
     __tablename__ = "items"
+    __table_args__ = (Index("ix_items_group_id", "group_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"))
+    group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"), index=True)
     en: Mapped[str] = mapped_column(String)
     zh: Mapped[str] = mapped_column(String)
     pos: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -66,6 +69,10 @@ class Item(Base):
 
 class WordProgress(Base):
     __tablename__ = "word_progress"
+    __table_args__ = (
+        Index("ix_word_progress_status", "status"),
+        Index("ix_word_progress_next_review", "next_review"),
+    )
 
     word_id: Mapped[str] = mapped_column(String, primary_key=True)
     status: Mapped[str] = mapped_column(String, default="new")
@@ -94,6 +101,7 @@ class WordbookEntry(Base):
 
 class Mistake(Base):
     __tablename__ = "mistakes"
+    __table_args__ = (Index("ix_mistake_word_id", "word_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     word_id: Mapped[str] = mapped_column(String)

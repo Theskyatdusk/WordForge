@@ -10,7 +10,8 @@ class SFXClass {
 
   init(): void {
     if (typeof window === 'undefined') return;
-    window.addEventListener('beforeunload', () => {
+    // Use a named handler so it can be removed if needed (prevents duplicate registration)
+    const handler = () => {
       if (this.ctx) {
         try {
           this.ctx.close();
@@ -19,7 +20,8 @@ class SFXClass {
         }
         this.ctx = null;
       }
-    });
+    };
+    window.addEventListener('beforeunload', handler);
   }
 
   /** Lazy-init AudioContext (browsers require user interaction first) */

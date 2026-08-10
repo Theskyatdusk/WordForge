@@ -27,7 +27,10 @@ class TTSClass {
   volume = 1;
   autoPlay = true;
   private _keepaliveTimer: ReturnType<typeof setInterval> | null = null;
+  private _keepaliveStart = 0;
   private _currentAudio: HTMLAudioElement | null = null;
+  // Maximum keepalive duration (ms) — prevents indefinite timer when speechSynthesis bugs out
+  private static readonly KEEPALIVE_MAX_MS = 60000;
 
   init(): void {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -35,8 +38,12 @@ class TTSClass {
       return;
     }
     this.loadVoices();
-    speechSynthesis.addEventListener('voiceschanged', () => this.loadVoices());
+    // Use a named handler so it can be removed if needed (prevents duplicate registration on re-init)
+    this._voicesChangedHandler = () => this.loadVoices();
+    speechSynthesis.addEventListener('voiceschanged', this._voicesChangedHandler);
   }
+
+  private _voicesChangedHandler: (() => void) | null = null;
 
   loadVoices(): void {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -60,6 +67,7 @@ class TTSClass {
 
     // Primary: Web Speech API — instant, no network needed
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
       try {
         const utterance = new SpeechSynthesisUtterance(text);
         const voice = options.voice || this.preferredVoice;
@@ -80,7 +88,7 @@ class TTSClass {
         let started = false;
         utterance.onstart = () => { started = true; };
 
-        const fallbackTimer = setTimeout(() => {
+        fallbackTimer = setTimeout(() => {
           if (!started) {
             console.info('[TTS] speechSynthesis silent after 1.5s, trying Youdao audio');
             speechSynthesis.cancel();
@@ -91,12 +99,12 @@ class TTSClass {
         const origOnend = utterance.onend;
         const origOnerror = utterance.onerror;
         utterance.onend = (e) => {
-          clearTimeout(fallbackTimer);
+          if (fallbackTimer) clearTimeout(fallbackTimer);
           this._stopKeepalive();
           if (origOnend) origOnend.call(utterance, e);
         };
         utterance.onerror = (e) => {
-          clearTimeout(fallbackTimer);
+          if (fallbackTimer) clearTimeout(fallbackTimer);
           this._stopKeepalive();
           if (origOnerror) origOnerror.call(utterance, e);
           // Fall back to Youdao audio on error
@@ -108,6 +116,7 @@ class TTSClass {
         return;
       } catch (e) {
         console.warn('[TTS] speechSynthesis error:', e);
+        if (fallbackTimer) clearTimeout(fallbackTimer);
       }
     }
 
@@ -180,7 +189,14 @@ class TTSClass {
 
   private _startKeepalive(): void {
     this._stopKeepalive();
+    this._keepaliveStart = Date.now();
     this._keepaliveTimer = setInterval(() => {
+      // Safety: stop after max duration to prevent indefinite timer
+      if (Date.now() - this._keepaliveStart > TTSClass.KEEPALIVE_MAX_MS) {
+        this._stopKeepalive();
+        speechSynthesis.cancel();
+        return;
+      }
       if (speechSynthesis.speaking) {
         speechSynthesis.pause();
         speechSynthesis.resume();

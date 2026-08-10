@@ -11,6 +11,7 @@ import { sfx } from '../../utils/sfx';
 import { getEmoji, hashColor, affixHint } from '../../utils/visuals';
 import { getExamples } from '../../utils/examples';
 import { useProgressStore } from '../../store/useProgressStore';
+import { useVocab } from '../../hooks/useVocab';
 import { relativeTime, daysUntil, formatReactionTime } from '../../utils/format';
 
 interface WordDetailModalProps {
@@ -36,11 +37,12 @@ export function WordDetailModal({
   const getWordProgress = useProgressStore((s) => s.getWordProgress);
   const wordProgressMap = useProgressStore((s) => s.wordProgress);
   const progress = wordProgressMap[wordId] || getWordProgress(wordId);
+  const { data: vocabData } = useVocab();
 
   const emoji = useMemo(() => getEmoji(en), [en]);
   const color = useMemo(() => hashColor(en), [en]);
   const hint = useMemo(() => affixHint(en), [en]);
-  const examples = useMemo(() => getExamples(en, zh, pos), [en, zh, pos]);
+  const examples = useMemo(() => getExamples(en, zh, pos, vocabData), [en, zh, pos, vocabData]);
 
   const handleSpeak = () => {
     sfx.click();

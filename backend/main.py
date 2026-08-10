@@ -4,12 +4,16 @@ Serves both the REST API and the built frontend (dist/) from a single server,
 so the entire app runs on http://localhost:8000 in production.
 """
 import os
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
 
 from database import init_db
 from seed import run_seed
@@ -35,6 +39,9 @@ async def lifespan(app: FastAPI):
     init_db()
     run_seed()
     yield
+    # Clean up database connections on shutdown
+    from database import engine
+    engine.dispose()
 
 
 app = FastAPI(
@@ -89,6 +96,12 @@ async def cache_control_middleware(request: Request, call_next):
         response.headers["Cache-Control"] = "no-store"
 
     return response
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception on %s", request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 # Register API routers
@@ -173,8 +186,19 @@ if FRONTEND_DIST.exists():
 @app.get("/{full_path:path}")
 async def spa_fallback(request: Request, full_path: str):
     """Catch-all route for SPA client-side routing."""
-    # Don't intercept API routes
-    if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi"):
+    # Don't intercept API routes — redirect paths without trailing slash
+    # so FastAPI's route matching can find the correct API endpoint.
+    # Without this, the catch-all route would intercept /api/settings
+    # before redirect_slashes can redirect to /api/settings/.
+    if full_path.startswith("api/"):
+        if not full_path.endswith('/'):
+            return RedirectResponse(url=f"/{full_path}/", status_code=307)
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Not Found"},
+        )
+
+    if full_path.startswith("docs") or full_path.startswith("openapi"):
         return JSONResponse(
             status_code=404,
             content={"detail": "Not Found"},

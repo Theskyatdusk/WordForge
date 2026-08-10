@@ -1,11 +1,9 @@
 """Shared utility functions for WordForge backend."""
 from __future__ import annotations
 import time
-import json
 from datetime import date, timedelta
 from typing import Any, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 
 from models import (
     Item, Group, Section, Chapter, Setting, Streak, Equipped,
@@ -60,23 +58,38 @@ def get_chapter_id_from_word_id(word_id: str) -> str:
 
 
 def get_all_word_ids(db: Session) -> list[dict]:
-    """Return list of {word_id, en, zh, pos, chapter_id, chapter_title} for every item."""
-    results = []
-    chapters = db.query(Chapter).order_by(Chapter.order).all()
-    for ch in chapters:
-        for sec in sorted(ch.sections, key=lambda s: s.order):
-            for grp in sorted(sec.groups, key=lambda g: g.order):
-                for itm in sorted(grp.items, key=lambda i: i.order):
-                    wid = compute_word_id(ch.id, sec.order, grp.order, itm.order)
-                    results.append({
-                        "word_id": wid,
-                        "en": itm.en,
-                        "zh": itm.zh,
-                        "pos": itm.pos,
-                        "chapter_id": ch.id,
-                        "chapter_title": ch.title,
-                    })
-    return results
+    """Return list of {word_id, en, zh, pos, chapter_id, chapter_title} for every item.
+
+    Uses a single SQL JOIN instead of N+1 lazy loading.
+    """
+    rows = (
+        db.query(
+            Chapter.id.label("chapter_id"),
+            Chapter.title.label("chapter_title"),
+            Section.order.label("section_order"),
+            Group.order.label("group_order"),
+            Item.en,
+            Item.zh,
+            Item.pos,
+            Item.order.label("item_order"),
+        )
+        .join(Section, Section.chapter_id == Chapter.id)
+        .join(Group, Group.section_id == Section.id)
+        .join(Item, Item.group_id == Group.id)
+        .order_by(Chapter.order, Section.order, Group.order, Item.order)
+        .all()
+    )
+    return [
+        {
+            "word_id": compute_word_id(r.chapter_id, r.section_order, r.group_order, r.item_order),
+            "en": r.en,
+            "zh": r.zh,
+            "pos": r.pos,
+            "chapter_id": r.chapter_id,
+            "chapter_title": r.chapter_title,
+        }
+        for r in rows
+    ]
 
 
 # ============================================================
@@ -149,21 +162,48 @@ def get_coins(db: Session) -> int:
         return 0
 
 
-def add_coins(db: Session, amount: int) -> int:
-    """Add coins and return the new balance."""
-    new_balance = get_coins(db) + amount
-    set_setting(db, "coins", new_balance)
-    db.commit()
-    return new_balance
+def _safe_int_coins(val: Any) -> int:
+    """Safely convert a setting value to int, defaulting to 0 on failure."""
+    try:
+        return int(val) if val is not None else 0
+    except (TypeError, ValueError):
+        return 0
 
 
-def spend_coins(db: Session, amount: int) -> bool:
-    """Deduct coins if balance is sufficient.  Returns True on success."""
-    current = get_coins(db)
+def add_coins(db: Session, amount: int, commit: bool = True) -> None:
+    """Add coins to the singleton 'coins' setting row.
+
+    Uses a direct query-update pattern (instead of get_coins + set_setting)
+    to reduce the TOCTOU window.  When *commit* is False the caller is
+    responsible for committing the transaction (useful for atomic
+    multi-step operations such as shop purchases).
+    """
+    setting = db.query(Setting).filter(Setting.key == "coins").first()
+    if not setting:
+        setting = Setting(key="coins", value="0")
+        db.add(setting)
+    current = _safe_int_coins(setting.value)
+    setting.value = str(current + amount)
+    if commit:
+        db.commit()
+
+
+def spend_coins(db: Session, amount: int, commit: bool = True) -> bool:
+    """Deduct coins if balance is sufficient.  Returns True on success.
+
+    Uses a direct query-update pattern to reduce the TOCTOU window.
+    When *commit* is False the deduction is staged but not committed,
+    allowing the caller to commit it atomically with other changes.
+    """
+    setting = db.query(Setting).filter(Setting.key == "coins").first()
+    if not setting:
+        return False
+    current = _safe_int_coins(setting.value)
     if current < amount:
         return False
-    set_setting(db, "coins", current - amount)
-    db.commit()
+    setting.value = str(current - amount)
+    if commit:
+        db.commit()
     return True
 
 

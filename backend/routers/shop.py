@@ -80,7 +80,10 @@ def buy_item(body: BuyRequest, db: Session = Depends(get_db)):
         db.commit()
         return BuyResult(success=True, coins=get_coins(db), message="Purchased (free)")
 
-    if not spend_coins(db, price):
+    # Deduct coins without committing so the deduction and the Purchase
+    # record are persisted in a single atomic transaction.  If the commit
+    # fails, the rollback undoes the coin deduction automatically.
+    if not spend_coins(db, price, commit=False):
         raise HTTPException(status_code=400, detail="Not enough coins")
 
     db.add(Purchase(kind=body.kind, item_id=body.item_id, purchased_at=time.time()))
@@ -88,9 +91,7 @@ def buy_item(body: BuyRequest, db: Session = Depends(get_db)):
         db.commit()
     except Exception:
         db.rollback()
-        # Refund the coins if purchase record failed
-        add_coins(db, price)
-        raise HTTPException(status_code=500, detail="Purchase failed, coins refunded")
+        raise HTTPException(status_code=500, detail="Purchase failed")
 
     return BuyResult(success=True, coins=get_coins(db), message="Purchase successful")
 
@@ -151,10 +152,11 @@ def get_coins_balance(db: Session = Depends(get_db)):
 @router.get("/daily-tasks", response_model=list[DailyTaskOut])
 def get_daily_tasks(db: Session = Depends(get_db)):
     """Return today's daily tasks (creates them if missing)."""
-    # Auto-complete any tasks whose conditions are already met
+    # Auto-complete any tasks whose conditions are already met (also ensures tasks exist)
     check_and_complete_daily_tasks(db)
 
-    tasks = ensure_daily_tasks(db)
+    # check_and_complete_daily_tasks already calls ensure_daily_tasks internally
+    tasks = db.query(DailyTask).filter(DailyTask.date == today_str()).all()
     task_map = {t.task_id: t for t in tasks}
 
     result = []
@@ -193,13 +195,10 @@ def update_daily_task(body: DailyTaskUpdateIn, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Unknown task")
 
     if body.action == "complete":
-        task.completed = True
-        db.commit()
-        return DailyTaskResult(
-            success=True, task_id=body.task_id,
-            completed=True, claimed=task.claimed,
-            message="Task completed",
-        )
+        # Don't allow manual completion — tasks are auto-completed by
+        # check_and_complete_daily_tasks when conditions are actually met.
+        # This prevents cheating by marking tasks complete without doing the work.
+        raise HTTPException(status_code=403, detail="Tasks are auto-completed when conditions are met")
 
     elif body.action == "claim":
         if not task.completed:

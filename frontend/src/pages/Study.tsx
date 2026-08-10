@@ -44,7 +44,7 @@ import { getEmoji, affixHint, getChapterIcon } from '../utils/visuals';
 import { getExamples } from '../utils/examples';
 import { getQuestion } from '../utils/confuse';
 import { shadowStart, shadowStop, shadowSupported } from '../utils/shadow';
-import { formatDuration } from '../utils/format';
+import { formatDuration, todayStr } from '../utils/format';
 import type { SrsGrade, ExampleSentence, ConfuseQuestion, ShadowResult } from '../types/index';
 
 type StudyMode = 'flashcard' | 'quiz' | 'spelling' | 'listening' | 'image' | 'recall' | 'cloze' | 'zhan' | 'confuse' | 'adaptive';
@@ -196,6 +196,12 @@ export function Study() {
   const [startTime, setStartTime] = useState(0);
   const [wordShownAt, setWordShownAt] = useState(0);
   const [attempt, setAttempt] = useState(0);
+
+  // Refs for session completion (avoids stale closure in handleNext)
+  const correctCountRef = useRef(0);
+  const wrongCountRef = useRef(0);
+  useEffect(() => { correctCountRef.current = correctCount; }, [correctCount]);
+  useEffect(() => { wrongCountRef.current = wrongCount; }, [wrongCount]);
 
   // Multiple correct answers tracking
   const [sessionCorrect, setSessionCorrect] = useState<Record<string, number>>({});
@@ -627,11 +633,11 @@ export function Study() {
     setShadowListening(false);
 
     if (currentIndex + 1 >= sessionWords.length) {
-      // Finish session
+      // Finish session — use refs to get latest counts (avoids stale closure)
       const studied = sessionWords.length;
-      const correct = correctCount;
-      const wrong = wrongCount;
-      const today = new Date().toLocaleDateString('sv-SE');
+      const correct = correctCountRef.current;
+      const wrong = wrongCountRef.current;
+      const today = todayStr();
       const history = studyHistory.map((h) => {
         if (h.date === today) {
           return {

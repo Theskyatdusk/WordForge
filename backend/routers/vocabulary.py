@@ -1,6 +1,6 @@
 """Vocabulary router — chapters, single chapter, stats."""
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func
 
 from database import get_db
@@ -69,7 +69,16 @@ def _build_chapter(chapter: Chapter) -> ChapterOut:
 @router.get("/chapters", response_model=list[ChapterOut])
 def get_chapters(db: Session = Depends(get_db)):
     """Return all chapters with full nested data (sections → groups → items)."""
-    chapters = db.query(Chapter).order_by(Chapter.order).all()
+    chapters = (
+        db.query(Chapter)
+        .options(
+            selectinload(Chapter.sections)
+            .selectinload(Section.groups)
+            .selectinload(Group.items)
+        )
+        .order_by(Chapter.order)
+        .all()
+    )
     return [_build_chapter(ch) for ch in chapters]
 
 
@@ -93,7 +102,16 @@ def get_chapters_brief(db: Session = Depends(get_db)):
 @router.get("/chapters/{chapter_id}", response_model=ChapterOut)
 def get_chapter(chapter_id: str, db: Session = Depends(get_db)):
     """Return a single chapter with full nested data."""
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    chapter = (
+        db.query(Chapter)
+        .options(
+            selectinload(Chapter.sections)
+            .selectinload(Section.groups)
+            .selectinload(Group.items)
+        )
+        .filter(Chapter.id == chapter_id)
+        .first()
+    )
     if not chapter:
         raise HTTPException(status_code=404, detail=f"Chapter '{chapter_id}' not found")
     return _build_chapter(chapter)

@@ -94,9 +94,16 @@ export const useUIStore = create<UIState>((set, get) => ({
   toasts: [],
   addToast: (message, type = 'info', duration = 3000) => {
     const id = generateId();
-    set((state) => ({
-      toasts: [...state.toasts, { id, message, type, duration }],
-    }));
+    set((state) => {
+      // Cap concurrent toasts to prevent timer accumulation
+      const MAX_TOASTS = 5;
+      const newToasts = [...state.toasts, { id, message, type, duration }];
+      // FIFO eviction: remove oldest if over limit
+      if (newToasts.length > MAX_TOASTS) {
+        newToasts.splice(0, newToasts.length - MAX_TOASTS);
+      }
+      return { toasts: newToasts };
+    });
     if (duration > 0) {
       setTimeout(() => {
         get().removeToast(id);

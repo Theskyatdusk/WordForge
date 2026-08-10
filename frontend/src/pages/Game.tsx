@@ -103,6 +103,12 @@ export function Game() {
   const [speedScore, setSpeedScore] = useState(0);
   const [speedTimer, setSpeedTimer] = useState(SPEED_TIME_LIMIT);
 
+  // Ref to track speedIndex for use in timeout callbacks (avoids stale closure)
+  const speedIndexRef = useRef(0);
+  useEffect(() => {
+    speedIndexRef.current = speedIndex;
+  }, [speedIndex]);
+
   const allItems = useMemo(() => getAllItems(data), [data]);
   const wordPool = useMemo(
     () => allItems.map((fi) => fi.item).filter((i) => i.en && i.zh),
@@ -135,6 +141,38 @@ export function Game() {
   useEffect(() => {
     wordPoolRef.current = wordPool;
   }, [wordPool]);
+
+  // Track all setTimeout calls for cleanup on unmount — prevents memory leaks
+  const timeoutsRef = useRef<number[]>([]);
+  const safeTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = window.setTimeout(() => {
+      fn();
+      // Remove the id from the tracking array
+      timeoutsRef.current = timeoutsRef.current.filter((t) => t !== id);
+    }, ms);
+    timeoutsRef.current.push(id);
+  }, []);
+
+  // Clear all pending timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    };
+  }, []);
+
+  // Stable Chinese-column permutation for the current match round.
+  // Recomputed only when the set of match items changes (new round), NOT on
+  // every render or when matched/wrong flags update — otherwise the Chinese
+  // column would reshuffle each render (and on each correct/wrong match),
+  // making the game unplayable. The indices are applied to the current
+  // matchPairs so matched/wrong flags always stay in sync.
+  const matchItemsKey = matchPairs.map((p) => p.item.en).join('|');
+  const zhOrder = useMemo(
+    () => shuffle(matchPairs.map((_, i) => i)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [matchItemsKey],
+  );
 
   // ===== Match Game =====
   const startMatch = useCallback(() => {
@@ -180,7 +218,7 @@ export function Game() {
 
         // Check if round complete
         if (newPairs.every((p) => p.matched)) {
-          setTimeout(() => {
+          safeTimeout(() => {
             if (matchRound >= 3) {
               // Game complete — use functional update to get latest matchScore
               setMatchScore((latestScore) => {
@@ -211,7 +249,7 @@ export function Game() {
         ));
         setSelectedEn(null);
         setSelectedZh(null);
-        setTimeout(() => {
+        safeTimeout(() => {
           setMatchPairs((prev) => prev.map((p) => ({ ...p, wrong: false })));
         }, 600);
       }
@@ -227,7 +265,7 @@ export function Game() {
         sfx.correct();
 
         if (newPairs.every((p) => p.matched)) {
-          setTimeout(() => {
+          safeTimeout(() => {
             if (matchRound >= 3) {
               setMatchScore((latestScore) => {
                 const coins = latestScore * 5 + 20;
@@ -255,7 +293,7 @@ export function Game() {
         ));
         setSelectedEn(null);
         setSelectedZh(null);
-        setTimeout(() => {
+        safeTimeout(() => {
           setMatchPairs((prev) => prev.map((p) => ({ ...p, wrong: false })));
         }, 600);
       }
@@ -330,8 +368,8 @@ export function Game() {
     }
 
     // Move to next after delay
-    setTimeout(() => {
-      if (speedIndex + 1 >= SPEED_ROUND_SIZE) {
+    safeTimeout(() => {
+      if (speedIndexRef.current + 1 >= SPEED_ROUND_SIZE) {
         // Game complete — use functional update to get latest speedScore
         setSpeedScore((latestScore) => {
           const coins = latestScore * 3 + 10;
@@ -390,13 +428,13 @@ export function Game() {
       const ob = obstaclesRef.current.find((o) => o.id === obstacleId);
       if (ob) ob.cleared = true;
       setRunnerJumping(true);
-      window.setTimeout(() => setRunnerJumping(false), 700);
+      safeTimeout(() => setRunnerJumping(false), 700);
       setCurrentQuiz(null);
       setRunnerState('playing');
     } else {
       sfx.wrong();
       setRunnerHit(true);
-      window.setTimeout(() => setRunnerHit(false), 500);
+      safeTimeout(() => setRunnerHit(false), 500);
       // Character hits the obstacle — remove it and lose 1 HP
       obstaclesRef.current = obstaclesRef.current.filter((o) => o.id !== obstacleId);
       const newHp = hpRef.current - 1;
@@ -696,7 +734,7 @@ export function Game() {
   // ===== Match Game =====
   if (mode === 'match') {
     const enList = matchPairs;
-    const zhList = shuffle([...matchPairs]);
+    const zhList = zhOrder.map((i) => matchPairs[i]);
     const allMatched = matchPairs.every((p) => p.matched);
 
     return (

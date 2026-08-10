@@ -43,7 +43,9 @@ function localDateStr(d = new Date()): string {
 
 /** ID-based achievement lookup — avoids fragile array index references */
 function findById(id: string): Achievement {
-  return ACHIEVEMENTS.find((a) => a.id === id)!;
+  const found = ACHIEVEMENTS.find((a) => a.id === id);
+  if (!found) return { id: 'unknown', title: '未知成就', icon: '❓', desc: '' };
+  return found;
 }
 
 export function checkAchievements(

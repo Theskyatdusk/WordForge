@@ -53,9 +53,9 @@ def update_progress(progress, grade, responded_ms=None):
             rt_bonus = 0.05       # fast responses give a small ease bonus
 
     # --- Current SM-2 state ---
-    ease = progress.ease if progress.ease else 2.5
-    interval = progress.interval if progress.interval else 0
-    repetitions = progress.repetitions if progress.repetitions else 0
+    ease = progress.ease if progress.ease is not None else 2.5
+    interval = progress.interval if progress.interval is not None else 0
+    repetitions = progress.repetitions if progress.repetitions is not None else 0
 
     # --- Interval & repetition update ---
     if q >= 3:
@@ -95,15 +95,11 @@ def update_progress(progress, grade, responded_ms=None):
 
     # --- Rolling RT average ---
     if responded_ms is not None:
-        if progress.rt_avg:
-            progress.rt_avg = (progress.rt_avg + responded_ms) / 2
-        else:
-            progress.rt_avg = responded_ms
+        n = progress.review_count or 1
+        progress.rt_avg = ((progress.rt_avg or 0) * (n - 1) + responded_ms) / n
 
     # --- Status: new -> learning -> reviewing -> mastered ---
-    if (progress.review_count or 0) == 0:
-        progress.status = "new"
-    elif interval >= MATURE_INTERVAL:
+    if interval >= MATURE_INTERVAL:
         progress.status = "mastered"
     elif interval >= 6:
         progress.status = "reviewing"
@@ -114,13 +110,13 @@ def update_progress(progress, grade, responded_ms=None):
 
 
 def get_strength(progress) -> float:
-    """Memory strength: 100 * 2^(-days_passed / interval_days)."""
+    """Memory strength: 100 * 2^(-days_passed / interval_days), clamped to [0, 100]."""
     if not progress.last_review:
         return 0.0
     interval_days = max(progress.interval or 1, 1)
     days_passed = (time.time() - progress.last_review) / 86400
     strength = 100 * (2 ** (-days_passed / interval_days))
-    return round(strength, 1)
+    return round(min(max(strength, 0.0), 100.0), 1)
 
 
 def get_box(progress) -> int:

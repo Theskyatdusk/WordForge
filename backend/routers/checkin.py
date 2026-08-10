@@ -2,6 +2,7 @@
 import time
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from database import get_db
 from models import Checkin
@@ -44,8 +45,20 @@ def do_checkin(db: Session = Depends(get_db)):
             already_checked_in=True,
         )
 
-    # Create check-in record
+    # Create check-in record (catch race condition: concurrent insert)
     db.add(Checkin(date=today))
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        streak = get_streak(db)
+        return CheckinResultOut(
+            success=True,
+            streak=streak.current,
+            longest=streak.longest,
+            coins_earned=0,
+            already_checked_in=True,
+        )
 
     # Update streak
     streak = get_streak(db)
@@ -59,8 +72,6 @@ def do_checkin(db: Session = Depends(get_db)):
     # Award coins: base + streak bonus
     coins_earned = BASE_CHECKIN_COINS + min(streak.current - 1, MAX_STREAK_BONUS)
     add_coins(db, coins_earned)
-
-    db.commit()
 
     # Check achievements (streak3, streak7)
     achievements.check_achievements(db)
@@ -89,21 +100,23 @@ def get_streak_info(db: Session = Depends(get_db)):
 def get_checkin_dates(db: Session = Depends(get_db)):
     """Return all check-in dates (YYYY-MM-DD), ordered descending."""
     checkins = (
-        db.query(Checkin)
+        db.query(Checkin.date)
         .order_by(Checkin.date.desc())
         .all()
     )
-    return [c.date for c in checkins]
+    return [c[0] for c in checkins]
 
 
 @router.get("/calendar/{year}/{month}")
 def get_monthly_checkins(year: int, month: int, db: Session = Depends(get_db)):
     """Return check-in dates for a specific year/month."""
+    if not (1 <= month <= 12):
+        raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
     prefix = f"{year:04d}-{month:02d}-"
     checkins = (
-        db.query(Checkin)
+        db.query(Checkin.date)
         .filter(Checkin.date.like(f"{prefix}%"))
         .order_by(Checkin.date)
         .all()
     )
-    return {"year": year, "month": month, "dates": [c.date for c in checkins]}
+    return {"year": year, "month": month, "dates": [c[0] for c in checkins]}

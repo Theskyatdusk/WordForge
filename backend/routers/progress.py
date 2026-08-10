@@ -117,25 +117,31 @@ def get_due_words(
     all_word_infos = get_all_word_ids(db)
     info_map = {w["word_id"]: w for w in all_word_infos}
 
-    # Collect studied word_ids
-    all_progress = db.query(WordProgress).all()
-    studied_ids = {p.word_id for p in all_progress}
+    # Query only due/non-mastered progress records (SQL filtering instead of full table load)
+    due_progress = (
+        db.query(WordProgress)
+        .filter(WordProgress.status != "mastered")
+        .filter(WordProgress.next_review <= now)
+        .all()
+    )
+    studied_ids = {p.word_id for p in due_progress}
 
     result: list[DueWordOut] = []
 
     # 1. Due words (learning/reviewing, not mastered, next_review <= now)
-    for p in all_progress:
-        if p.status == "mastered":
-            continue
-        if p.next_review and p.next_review <= now:
-            info = info_map.get(p.word_id)
-            if info:
-                result.append(_build_due_word(info, p))
+    for p in due_progress:
+        info = info_map.get(p.word_id)
+        if info:
+            result.append(_build_due_word(info, p))
 
     # 2. New words (no progress record yet)
     if include_new:
+        # Only need to check which word_ids have ANY progress record
+        all_studied_ids = {
+            r[0] for r in db.query(WordProgress.word_id).all()
+        }
         for wid, info in info_map.items():
-            if wid not in studied_ids:
+            if wid not in all_studied_ids:
                 result.append(_build_due_word(info, None))
 
     return result[:limit]
@@ -180,22 +186,45 @@ def get_weak_words(
 @router.get("/stats/overview", response_model=ProgressStatsOut)
 def get_progress_stats(db: Session = Depends(get_db)):
     """Return overall progress statistics and level info."""
-    total_words = db.query(Item).count()
-    all_progress = db.query(WordProgress).all()
+    from sqlalchemy import func
 
-    studied = sum(1 for p in all_progress if (p.review_count or 0) > 0)
-    mastered = sum(1 for p in all_progress if p.status == "mastered")
-    learning = sum(1 for p in all_progress if p.status == "learning")
-    reviewing = sum(1 for p in all_progress if p.status == "reviewing")
+    total_words = db.query(Item).count()
+
+    # Use SQL aggregation instead of loading all records into memory
+    status_counts = (
+        db.query(WordProgress.status, func.count(WordProgress.word_id))
+        .group_by(WordProgress.status)
+        .all()
+    )
+    status_map = dict(status_counts)
+    mastered = status_map.get("mastered", 0)
+    learning = status_map.get("learning", 0)
+    reviewing = status_map.get("reviewing", 0)
+
+    studied_count = (
+        db.query(func.count(WordProgress.word_id))
+        .filter(WordProgress.review_count > 0)
+        .scalar() or 0
+    )
+    studied = studied_count
     new_count = total_words - studied
 
-    total_correct = sum(p.correct_count or 0 for p in all_progress)
-    total_wrong = sum(p.wrong_count or 0 for p in all_progress)
-    total_familiar = sum(p.familiar_count or 0 for p in all_progress)
+    # Aggregate sums via SQL
+    sums = (
+        db.query(
+            func.sum(WordProgress.correct_count),
+            func.sum(WordProgress.wrong_count),
+            func.sum(WordProgress.familiar_count),
+            func.sum(WordProgress.review_count),
+        )
+        .first()
+    )
+    total_correct = sums[0] or 0
+    total_wrong = sums[1] or 0
+    total_familiar = sums[2] or 0
+    total_reviews = sums[3] or 0
     total_answers = total_correct + total_wrong + total_familiar
     accuracy = round((total_correct + total_familiar) / total_answers * 100, 1) if total_answers > 0 else 0.0
-
-    total_reviews = sum(p.review_count or 0 for p in all_progress)
 
     level_info = srs.get_level(mastered)
 
@@ -222,9 +251,26 @@ def get_chapter_progress(chapter_id: str, db: Session = Depends(get_db)):
     if not chapter:
         raise HTTPException(status_code=404, detail="Chapter not found")
 
-    # Get all word_ids belonging to this chapter
+    # Query only this chapter's words (avoids loading all chapters)
+    chapter_rows = (
+        db.query(
+            Section.order.label("section_order"),
+            Group.order.label("group_order"),
+            Item.en, Item.zh, Item.pos, Item.order.label("item_order"),
+        )
+        .join(Group, Group.section_id == Section.id)
+        .join(Item, Item.group_id == Group.id)
+        .filter(Section.chapter_id == chapter_id)
+        .order_by(Section.order, Group.order, Item.order)
+        .all()
+    )
     chapter_word_infos = [
-        w for w in get_all_word_ids(db) if w["chapter_id"] == chapter_id
+        {
+            "word_id": compute_word_id(chapter_id, r.section_order, r.group_order, r.item_order),
+            "en": r.en, "zh": r.zh, "pos": r.pos,
+            "chapter_id": chapter_id, "chapter_title": chapter.title,
+        }
+        for r in chapter_rows
     ]
     total = len(chapter_word_infos)
     word_ids = {w["word_id"] for w in chapter_word_infos}
@@ -294,6 +340,7 @@ def mark_mastered(word_id: str, db: Session = Depends(get_db)):
 
     progress = db.query(WordProgress).filter(WordProgress.word_id == word_id).first()
     if not progress:
+        now = time.time()
         progress = WordProgress(
             word_id=word_id,
             status="mastered",
@@ -301,6 +348,8 @@ def mark_mastered(word_id: str, db: Session = Depends(get_db)):
             correct_count=1,
             wrong_count=0,
             familiar_count=0,
+            last_review=now,
+            next_review=now + 86400 * 30,  # 30天后复习
             ease=2.5,
             interval=srs.MATURE_INTERVAL,
             repetitions=3,
@@ -308,9 +357,15 @@ def mark_mastered(word_id: str, db: Session = Depends(get_db)):
         )
         db.add(progress)
     else:
+        now = time.time()
         progress.status = "mastered"
+        progress.last_review = now
         progress.interval = srs.MATURE_INTERVAL
-        progress.next_review = time.time() + srs.MATURE_INTERVAL * 86400
+        progress.next_review = now + srs.MATURE_INTERVAL * 86400
+        progress.ease = max(progress.ease or 2.5, 2.5)
+        progress.repetitions = max(progress.repetitions or 0, 3)
+        progress.review_count = (progress.review_count or 0) + 1
+        progress.correct_count = (progress.correct_count or 0) + 1
 
     db.commit()
     db.refresh(progress)
@@ -318,8 +373,10 @@ def mark_mastered(word_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/reset")
-def reset_progress(db: Session = Depends(get_db)):
-    """Delete all word progress and mistake records."""
+def reset_progress(confirm: str = Query("", description="Must be 'DELETE' to confirm"), db: Session = Depends(get_db)):
+    """Delete all word progress and mistake records. Requires confirmation."""
+    if confirm != "DELETE":
+        raise HTTPException(status_code=400, detail="Confirmation required: pass confirm=DELETE")
     db.query(WordProgress).delete()
     db.query(Mistake).delete()
     db.commit()

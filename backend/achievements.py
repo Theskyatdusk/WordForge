@@ -58,13 +58,18 @@ def _check_condition(db: Session, achievement_id: str) -> bool:
         return db.query(WordbookEntry).count() >= 10
 
     elif achievement_id == "perfect":
-        sessions = db.query(StudySession).filter(StudySession.sessions > 0).all()
-        for s in sessions:
-            if s.words_studied >= 10 and s.wrong == 0:
-                return True
-        return False
+        # Use SQL COUNT instead of loading all sessions into memory
+        count = (
+            db.query(StudySession)
+            .filter(StudySession.sessions > 0)
+            .filter(StudySession.words_studied >= 10)
+            .filter(StudySession.wrong == 0)
+            .count()
+        )
+        return count > 0
 
     elif achievement_id == "quiz50":
+        # Sum quiz mode counts across all sessions (JSON list iteration in Python is unavoidable)
         sessions = db.query(StudySession).all()
         total_quiz = 0
         for s in sessions:
@@ -89,10 +94,17 @@ def check_achievements(db: Session) -> list[dict]:
             record = Achievement(id=ach["id"], unlocked_at=time.time())
             db.add(record)
             newly_unlocked.append(ach)
-            add_coins(db, ACHIEVEMENT_COIN_REWARD)
 
     if newly_unlocked:
-        db.commit()
+        # Collect all coin rewards and add them in a single add_coins call.
+        # add_coins commits the transaction, persisting both the Achievement
+        # records and the coin update together (avoids partial commits).
+        total_reward = ACHIEVEMENT_COIN_REWARD * len(newly_unlocked)
+        try:
+            add_coins(db, total_reward)
+        except Exception:
+            # If coin reward fails, still commit the achievement records
+            db.commit()
     return newly_unlocked
 
 

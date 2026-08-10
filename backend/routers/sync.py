@@ -2,7 +2,7 @@
 import json
 import time
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -27,6 +27,16 @@ def _row_to_dict(row) -> dict:
     for col in row.__table__.columns:
         d[col.name] = getattr(row, col.name)
     return d
+
+
+def _filter_columns(model_class, item: dict) -> dict:
+    """Filter a dict to only contain valid column names for the given model.
+
+    Prevents arbitrary column injection via Model(**item) which could
+    raise TypeError on unknown keys or silently inject bad data.
+    """
+    valid_cols = {col.name for col in model_class.__table__.columns}
+    return {k: v for k, v in item.items() if k in valid_cols}
 
 
 @router.get("/", response_model=SyncData)
@@ -98,72 +108,78 @@ def import_all_data(body: SyncData, db: Session = Depends(get_db)):
         db.query(Achievement).delete()
         db.query(DailyTask).delete()
         db.query(CustomVocab).delete()
+        db.query(UserProgress).delete()
 
         # --- Progress ---
         for item in body.progress:
-            db.add(WordProgress(**item))
+            db.add(WordProgress(**_filter_columns(WordProgress, item)))
         counts["progress"] = len(body.progress)
 
         # --- Wordbook ---
         for item in body.wordbook:
-            db.add(WordbookEntry(**item))
+            db.add(WordbookEntry(**_filter_columns(WordbookEntry, item)))
         counts["wordbook"] = len(body.wordbook)
 
         # --- Mistakes ---
         for item in body.mistakes:
-            db.add(Mistake(**item))
+            db.add(Mistake(**_filter_columns(Mistake, item)))
         counts["mistakes"] = len(body.mistakes)
 
         # --- Checkins ---
         for item in body.checkins:
-            db.add(Checkin(**item))
+            db.add(Checkin(**_filter_columns(Checkin, item)))
         counts["checkins"] = len(body.checkins)
 
         # --- Sessions ---
         for item in body.sessions:
-            db.add(StudySession(**item))
+            db.add(StudySession(**_filter_columns(StudySession, item)))
         counts["sessions"] = len(body.sessions)
 
         # --- Settings ---
+        # Block sensitive keys (coins, level, streak, etc.) from being injected
+        _sensitive = {"coins", "level", "streak", "purchasedBadges", "purchasedThemes"}
         for key, value in body.settings.items():
-            db.add(Setting(key=key, value=value))
+            if key not in ("id",) and key not in _sensitive:
+                db.add(Setting(key=key, value=value))
         counts["settings"] = len(body.settings)
 
         # --- Streak ---
         if body.streak:
-            db.add(Streak(**body.streak))
+            db.add(Streak(**_filter_columns(Streak, body.streak)))
         counts["streak"] = 1 if body.streak else 0
 
         # --- Purchases ---
         for item in body.purchases:
-            db.add(Purchase(**item))
+            db.add(Purchase(**_filter_columns(Purchase, item)))
         counts["purchases"] = len(body.purchases)
 
         # --- Equipped ---
         if body.equipped:
-            db.add(Equipped(**body.equipped))
+            db.add(Equipped(**_filter_columns(Equipped, body.equipped)))
         else:
             db.add(Equipped(id=1, theme="default", badge=""))
         counts["equipped"] = 1
 
         # --- Achievements ---
         for item in body.achievements:
-            db.add(Achievement(**item))
+            db.add(Achievement(**_filter_columns(Achievement, item)))
         counts["achievements"] = len(body.achievements)
 
         # --- Daily tasks ---
         for item in body.daily_tasks:
-            db.add(DailyTask(**item))
+            db.add(DailyTask(**_filter_columns(DailyTask, item)))
         counts["daily_tasks"] = len(body.daily_tasks)
 
         # --- Custom vocabs ---
         for item in body.custom_vocabs:
-            db.add(CustomVocab(**item))
+            db.add(CustomVocab(**_filter_columns(CustomVocab, item)))
         counts["custom_vocabs"] = len(body.custom_vocabs)
 
         db.commit()
-    except Exception:
+    except Exception as e:
         db.rollback()
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Failed to import data")
 
     return SyncResult(
@@ -235,8 +251,10 @@ def download_progress(db: Session = Depends(get_db)):
 
 
 @router.post("/reset", response_model=ProgressResetResult)
-def reset_progress(db: Session = Depends(get_db)):
+def reset_progress(confirm: str = Query("", description="Must be 'DELETE' to confirm"), db: Session = Depends(get_db)):
     """Delete all saved progress data (the single JSON blob)."""
+    if confirm != "DELETE":
+        raise HTTPException(status_code=400, detail="Confirmation required: pass confirm=DELETE")
     try:
         db.query(UserProgress).delete()
         db.commit()

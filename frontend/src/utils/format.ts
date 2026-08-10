@@ -86,11 +86,14 @@ export function dayOfWeek(ts: number | null | undefined): string {
   return labels[new Date(ts).getDay()];
 }
 
-/** Get the last N days as date strings (YYYY-MM-DD), oldest first */
+/** Get the last N days as date strings (YYYY-MM-DD), oldest first.
+ *  Uses date arithmetic instead of ms subtraction to avoid DST issues. */
 export function lastNDays(n: number): string[] {
   const result: string[] = [];
+  const today = new Date();
   for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(Date.now() - i * DAY_MS);
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
